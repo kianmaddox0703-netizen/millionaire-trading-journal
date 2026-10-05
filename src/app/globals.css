@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0b0d10;
+  --color-surface: #12151a;
+  --color-surface-2: #181c22;
+  --color-surface-3: #1f242c;
+  --color-line: #262c35;
+  --color-line-strong: #343b46;
+  --color-fg: #e6e9ee;
+  --color-muted: #8b94a3;
+  --color-faint: #5c6573;
+  --color-profit: #2fbf71;
+  --color-profit-soft: #143a27;
+  --color-loss: #ef5350;
+  --color-loss-soft: #3d1a1c;
+  --color-warn: #f0a63a;
+  --color-warn-soft: #3a2a12;
+  --color-info: #4c8dff;
+  --color-info-soft: #15233d;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+:root { color-scheme: dark; }
+html, body { background: var(--color-bg); color: var(--color-fg); }
+body { font-family: var(--font-sans); font-size: 13px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+:focus-visible { outline: 2px solid var(--color-info); outline-offset: 1px; border-radius: 4px; }
+::selection { background: #2a4a80; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: var(--color-line-strong); border-radius: 4px; }
+.recharts-cartesian-grid line { stroke: var(--color-line); }
+.recharts-text { fill: var(--color-muted); font-size: 11px; }
+.recharts-tooltip-wrapper { outline: none; }
