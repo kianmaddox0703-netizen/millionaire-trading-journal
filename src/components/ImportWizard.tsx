@@ -175,9 +175,9 @@ export function ImportWizard({ accounts, defaultAccount, tz }: { accounts: { id:
             <span className="text-muted">Times shown in {tz}.</span>
           </div>
           <Table>
-            <thead><tr>{["Row", "Status", "Trade", "Opened", "Closed", "Entry", "Exit", "Stop", "Size", "Net", "Action"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
+            <thead><tr>{["Row", "Status", "Trade", "Opened → closed", "Entry", "Exit", "Stop", "Size", "Net", "Action"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
             <tbody>{preview.rows.slice(0, SHOWN).map((r) => r.status === "error" ? (
-              <tr key={r.row}><td className={cx(td, "num text-muted")}>{r.row}</td><td className={td}><Badge tone="loss">Error</Badge></td><td className={cx(td, "text-loss")} colSpan={9}>{r.error}</td></tr>
+              <tr key={r.row}><td className={cx(td, "num text-muted")}>{r.row}</td><td className={td}><Badge tone="loss">Error</Badge></td><td className={cx(td, "text-loss")} colSpan={8}>{r.error}</td></tr>
             ) : (
               <tr key={r.row} className="align-top">
                 <td className={cx(td, "num text-muted")}>{r.row}</td>
@@ -186,8 +186,7 @@ export function ImportWizard({ accounts, defaultAccount, tz }: { accounts: { id:
                   {r.trade.warnings.map((w) => <div key={w} className="mt-0.5 max-w-[220px] text-[11px] text-warn">{w}</div>)}
                 </td>
                 <td className={cx(td, "whitespace-nowrap")}>{r.trade.symbol} <span className={r.trade.direction === "long" ? "text-profit" : "text-loss"}>{r.trade.direction === "long" ? "Long" : "Short"}</span>{r.trade.externalRef && <div className="text-[11px] text-faint">#{r.trade.externalRef}</div>}</td>
-                <td className={cx(td, "num whitespace-nowrap")}>{fmtDate(new Date(r.trade.openedAt), tz)}</td>
-                <td className={cx(td, "num whitespace-nowrap")}>{r.trade.closedAt ? fmtDate(new Date(r.trade.closedAt), tz) : <span className="text-muted">open</span>}</td>
+                <td className={cx(td, "num whitespace-nowrap")}>{fmtDate(new Date(r.trade.openedAt), tz)}<div className="text-muted">{r.trade.closedAt ? `→ ${fmtDate(new Date(r.trade.closedAt), tz)}` : "open"}</div></td>
                 <td className={cx(td, "num")}>{fmtPrice(r.trade.entryPrice)}</td>
                 <td className={cx(td, "num")}>{fmtPrice(r.trade.exitPrice)}</td>
                 <td className={cx(td, "num")}>{fmtPrice(r.trade.initialStop)}</td>
