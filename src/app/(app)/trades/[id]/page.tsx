@@ -12,8 +12,11 @@ import { Gallery } from "@/components/trade/Gallery";
 import { DeleteTrade } from "@/components/trade/DeleteTrade";
 import { fmtDate, fmtDuration, fmtMoney, fmtNum, fmtPrice, fmtR, fmtRate, tone, cap } from "@/lib/format";
 import { config } from "@/server/config";
+import { alertsForTrade, nearbyAlerts } from "@/server/tradingview";
+import { TradeAlerts } from "@/components/Integrations";
 
 export const metadata = { title: "Trade" };
+const SOURCE_LABEL = { manual: "Manual", csv: "File import", mt5_report: "MT5 report", mt5_bridge: "MT5 sync" } as const;
 
 export default async function TradePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,6 +38,11 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
   const pre = row.checklist.filter((c) => c.phase === "pre");
   const post = row.checklist.filter((c) => c.phase === "post");
   const sim = review.similarity;
+  const linked = alertsForTrade(user.id, id).map(({ alert: a, link: l }) => ({
+    id: a.id, symbol: a.symbol, timeframe: a.timeframe, side: a.side, price: a.price, setup: a.setup, message: a.message,
+    at: fmtDate(a.alertTime ?? a.receivedAt, tz), status: l.status as "suggested" | "confirmed", score: l.score,
+  }));
+  const nearby = nearbyAlerts(user.id, row).map((a) => ({ id: a.id, label: `${fmtDate(a.alertTime ?? a.receivedAt, tz)} · ${a.symbol}${a.timeframe ? ` ${a.timeframe}` : ""}${a.side ? ` ${a.side}` : ""}${a.setup ? ` · ${a.setup}` : ""}` }));
 
   return (
     <>
@@ -44,7 +52,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
           {fmtDate(row.openedAt, tz)} → {row.closedAt ? fmtDate(row.closedAt, tz) : "open"} · {fmtDuration(row.openedAt, row.closedAt)} · {row.account.name}
           {t.strategyName && <Badge tone="info">{t.strategyName}{t.setupName ? ` · ${t.setupName}` : ""}</Badge>}
           {row.setupQuality && <Badge>{row.setupQuality}</Badge>}
-          <Badge>{cap(row.source.replace("_", " "))}</Badge>
+          <Badge>{SOURCE_LABEL[row.source]}</Badge>
         </span>}
         actions={<><LinkButton href={`/trades/${id}/edit`}>Edit</LinkButton><DeleteTrade id={id} /></>}
       />
@@ -147,6 +155,8 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
               </ul>
             ) : <div className="text-[12px] text-muted">No mistakes recorded or detected.</div>}
           </Card>
+
+          <Card title="TradingView alerts"><TradeAlerts tradeId={id} linked={linked} nearby={nearby} /></Card>
 
           <Card title="AI analysis">
             {config.anthropicKey() ? <Note>AI screenshot analysis arrives in the next phase.</Note> : <Note tone="neutral">Not configured. Add <code>ANTHROPIC_API_KEY</code> on the server to enable screenshot analysis and AI trade reviews.</Note>}

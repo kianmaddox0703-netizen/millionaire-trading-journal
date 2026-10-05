@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { requireUser } from "@/server/auth";
 import { db, schema } from "@/server/db";
@@ -102,16 +103,16 @@ export default async function Settings() {
           </div>
         </Card>
 
-        <Card title="Integrations" className="scroll-mt-16">
+        <Card title="Integrations" className="scroll-mt-16" action={<LinkButton href="/settings/integrations">Manage</LinkButton>}>
           <div id="import" />
           <ul className="space-y-2 text-[12px]">
-            <li className="flex items-center justify-between gap-2"><span>CSV / MT5 history import, duplicate detection</span><Badge>Next phase</Badge></li>
-            <li className="flex items-center justify-between gap-2"><span>MT5 live sync (local bridge on your Windows PC)</span><Badge>Next phase</Badge></li>
-            <li className="flex items-center justify-between gap-2"><span>TradingView webhook alerts + automatic matching</span><Badge>Next phase</Badge></li>
+            <li className="flex items-center justify-between gap-2"><Link className="hover:underline" href="/trades/import">CSV, Excel and MT5 report import with duplicate detection</Link><Badge tone="profit">Ready</Badge></li>
+            <li className="flex items-center justify-between gap-2"><Link className="hover:underline" href="/settings/integrations">MT5 live sync (read-only bridge on your Windows PC)</Link><Badge tone="profit">Ready</Badge></li>
+            <li className="flex items-center justify-between gap-2"><Link className="hover:underline" href="/settings/integrations">TradingView webhook alerts and automatic matching</Link><Badge tone="profit">Ready</Badge></li>
             <li className="flex items-center justify-between gap-2"><span>Market data provider</span><Badge tone={config.marketDataProvider() === "none" ? "neutral" : "info"}>{config.marketDataProvider() === "none" ? "Not configured" : config.marketDataProvider()}</Badge></li>
             <li className="flex items-center justify-between gap-2"><span>AI (screenshot analysis, coach)</span><Badge tone={config.anthropicKey() ? "info" : "neutral"}>{config.anthropicKey() ? "Key present" : "Not configured"}</Badge></li>
           </ul>
-          <Note tone="neutral">Integrations are not simulated. Each one appears here only when it is real and working.</Note>
+          <Note tone="neutral">Integrations are not simulated. MT5 and TradingView need the setup steps on the Integrations page before they receive anything.</Note>
         </Card>
       </div>
     </>

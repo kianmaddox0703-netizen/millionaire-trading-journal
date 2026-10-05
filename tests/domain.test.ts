@@ -4,6 +4,7 @@ import { findEdges, groupStats } from "@/domain/edge";
 import { setupScore } from "@/domain/score";
 import { strategyVerdict } from "@/domain/verdict";
 import { rHistogram } from "@/domain/report";
+import { matchScore, bestTradeFor, parseAlertBody, intervalLabel, alertSide } from "@/domain/matching";
 
 describe("sessions", () => {
   it("uses local market hours across DST", () => {
@@ -57,5 +58,34 @@ describe("R histogram", () => {
     expect(h[0].count).toBe(1);
     expect(h.at(-1)!.count).toBe(1);
     expect(h.reduce((a, b) => a + b.count, 0)).toBe(3);
+  });
+});
+
+describe("TradingView alert matching", () => {
+  const alert = { id: "a1", symbol: "EURUSD", side: "long", price: 1.0825, time: new Date("2026-03-04T08:00:00Z") };
+  const trade = (o = {}) => ({ id: "t1", symbol: "EURUSD", direction: "long" as const, openedAt: new Date("2026-03-04T08:05:00Z"), entryPrice: 1.0826, ...o });
+
+  it("scores a close, same-direction trade highly and rejects mismatches", () => {
+    expect(matchScore(alert, trade())).toBeGreaterThan(0.95);
+    expect(matchScore(alert, trade({ direction: "short" }))).toBeNull();
+    expect(matchScore(alert, trade({ symbol: "GBPUSD" }))).toBeNull();
+    expect(matchScore(alert, trade({ openedAt: new Date("2026-03-04T12:30:00Z") }))).toBeNull(); // > 4h later
+    expect(matchScore(alert, trade({ openedAt: new Date("2026-03-04T07:45:00Z") }))).toBeNull(); // > 10 min before
+    expect(matchScore({ ...alert, symbol: "OANDA:EURUSD" }, trade({ symbol: "EURUSD.r" }))).toBeGreaterThan(0.9);
+  });
+  it("prefers the nearer trade, skips rejected pairs, and caps alerts without price", () => {
+    const near = trade({ id: "near" }), far = trade({ id: "far", openedAt: new Date("2026-03-04T10:30:00Z"), entryPrice: 1.0850 });
+    expect(bestTradeFor(alert, [far, near])!.trade.id).toBe("near");
+    expect(bestTradeFor(alert, [far, near], new Set(["a1:near"]))?.trade.id ?? null).toBe(null); // far scores below 0.5
+    expect(matchScore({ ...alert, price: null }, trade())).toBeLessThanOrEqual(0.8);
+  });
+  it("parses TradingView JSON and plain-text alerts", () => {
+    const p = parseAlertBody('{"symbol":"FX:EURUSD","timeframe":"240","price":1.0825,"side":"buy","setup":"AOI","time":"2026-03-04T08:00:00Z","message":"hi"}');
+    expect(p).toMatchObject({ symbol: "EURUSD", timeframe: "4H", price: 1.0825, side: "buy", setup: "AOI", message: "hi" });
+    expect(p.alertTime!.toISOString()).toBe("2026-03-04T08:00:00.000Z");
+    expect(parseAlertBody("EURUSD crossed 1.08")).toMatchObject({ symbol: null, message: "EURUSD crossed 1.08" });
+    expect(parseAlertBody('{"price":"abc","time":"nope"}')).toMatchObject({ price: null, alertTime: null });
+    expect(["15", "60", "240", "D", "1W", "3D"].map(intervalLabel)).toEqual(["15m", "1H", "4H", "D", "W", "3D"]);
+    expect(alertSide("Sell")).toBe("short");
   });
 });

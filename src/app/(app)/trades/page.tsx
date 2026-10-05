@@ -31,6 +31,7 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
         actions={<>
           <LinkButton href={`/api/export/trades?format=csv&${exportQs}`} prefetch={false}>Export CSV</LinkButton>
           <LinkButton href={`/api/export/trades?format=json&${exportQs}`} prefetch={false}>JSON</LinkButton>
+          <LinkButton href="/trades/import">Import</LinkButton>
           <LinkButton variant="primary" href="/trades/new">Add trade</LinkButton>
         </>}
       />

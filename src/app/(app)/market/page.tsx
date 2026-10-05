@@ -26,9 +26,9 @@ export default async function Market() {
       <Card title="Automatic market context" action={<Badge tone={provider === "none" ? "neutral" : "info"}>{provider === "none" ? "Not configured" : provider}</Badge>}>
         {provider === "none" ? (
           <Note tone="neutral">
-            No market-data provider is configured, so trend, volatility and key-level context come from what you enter on each trade. Session is always computed from the trade time. To fetch historical candles automatically, set <code>MARKET_DATA_PROVIDER</code> to <code>oanda</code> (free practice-account token) or <code>twelvedata</code> and add the API key on the server. Nothing here is estimated or simulated.
+            No market-data provider is configured, so trend, volatility and key-level context come from what you enter on each trade. Session is always computed from the trade time. Fetching historical candles automatically needs a market-data provider account (an OANDA practice token or a Twelve Data key); that connection isn't built yet. Nothing here is estimated or simulated.
           </Note>
-        ) : <Note>Provider configured. Automatic context computation is part of the integrations phase.</Note>}
+        ) : <Note tone="warn">A provider is selected, but its client isn't built yet, so no candles are fetched. It will be built and tested against your key.</Note>}
       </Card>
       <div className="mt-3 grid gap-3 xl:grid-cols-2">
         {sections.map(([title, fn]) => {

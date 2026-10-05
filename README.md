@@ -32,6 +32,14 @@ Production: `npm run build && npm start` behind HTTPS, with `COOKIE_SECURE=true`
 - **Calendar**: daily P&L, trades, win rate, R, mistakes, dominant emotion; click through to the day's trades; weekly totals link to the weekly review.
 - **Settings**: multiple accounts (combined or individual views), risk rules, configurable setup-score weights (with a table showing which factors actually correlate with your results), profile/timezone, password, exports.
 
+## Integrations (phase 4)
+
+- **Import** (Trades → Import): CSV, Excel and MT5 trade history reports (HTML or Open XML). Automatic column mapping you can adjust, broker-server timezone handling, a preview of every row, and duplicate detection with ignore / merge into the journaled trade / create anyway.
+- **MT5 live sync**: `bridge/mt5_bridge.py`, a read-only script for the Windows PC running MT5. It uses the official MetaTrader5 package, never calls `order_send`, never sees your broker password, and posts deals with a per-account API key.
+- **TradingView alerts**: a private webhook URL plus an alert message template. Alerts are stored and matched to the trade you take afterwards (symbol, direction, time, price), with confirm / unlink / manual link on the trade page.
+
+How each works, its limits and how it was verified: `docs/03-integrations.md`.
+
 ## Formulas
 
 All metric math is in `src/domain/metrics.ts`, written out explicitly and unit-tested:
@@ -45,21 +53,22 @@ All metric math is in `src/domain/metrics.ts`, written out explicitly and unit-t
 ## Tests
 
 ```bash
-npm test                      # unit + integration (metrics, mistakes, isolation, storage, search, CSV)
+npm test                      # unit + integration (metrics, mistakes, isolation, storage, search, CSV, import, matching, MT5 ingest)
 npm run dev & npm run db:seed
 node scripts/smoke.mjs        # loads every page as the seed user
 node scripts/e2e.mjs          # register → add trade + screenshot → edit → review → export → delete → mobile
+node scripts/e2e-integrations.mjs  # CSV + MT5 report import, duplicates, TradingView webhook, MT5 bridge (needs python3)
 ```
 
 ## Security
 
-bcrypt passwords; random session tokens stored only as SHA-256 hashes in httpOnly SameSite cookies; every query scoped by `user_id`; uploads type-sniffed from bytes and served through an authorized route; secrets only from environment variables; security headers; CSV exports guarded against formula injection.
+bcrypt passwords; random session tokens stored only as SHA-256 hashes in httpOnly SameSite cookies; webhook URLs and MT5 bridge keys are random, shown once and stored only as hashes; every query scoped by `user_id`; uploads type-sniffed from bytes and served through an authorized route; secrets only from environment variables; security headers; CSV exports guarded against formula injection.
 
 ## Roadmap
 
 | Phase | Scope | Needs from you |
 |---|---|---|
-| 4 Integrations | CSV + MT5 report import with column mapping and duplicate detection (merge / ignore / create anyway); MT5 local bridge (read-only Python script on your Windows PC); TradingView webhook endpoint; automatic TradingView↔MT5 matching with manual link/unlink; market-data provider | For live MT5/TradingView: a deployed HTTPS URL; TradingView plan with webhooks + 2FA; market-data API key (OANDA practice token recommended) |
+| 4 Integrations ✓ | Import, duplicates, MT5 bridge, TradingView webhook, matching are done. Market-data provider waits on a key. | TradingView: a public HTTPS URL, a plan with webhooks, 2FA. Market data: an OANDA practice token or Twelve Data key |
 | 5 AI | Screenshot analysis (observed / inferred / unknown), AI trade review, AI weekly/monthly summaries, AI coach grounded in your data + the knowledge base | `ANTHROPIC_API_KEY` |
 | 6 Polish | Accessibility pass, loading/empty states, performance, PDF export | — |
 

@@ -91,7 +91,7 @@ function assertOwned(table: typeof schema.strategies | typeof schema.setups | ty
 function toDetect(t: typeof T.$inferSelect, psych?: typeof schema.tradePsychology.$inferSelect | null): DetectTrade {
   return {
     id: t.id, openedAt: t.openedAt, closedAt: t.closedAt, netPnl: t.netPnl, rMultiple: t.rMultiple, riskPct: t.riskPct, riskAmount: t.riskAmount,
-    plannedRr: t.plannedRr, strategyId: t.strategyId, setupQuality: t.setupQuality, direction: t.direction, htfBias: t.htfBias, psych,
+    plannedRr: t.plannedRr, strategyId: t.strategyId, setupQuality: t.setupQuality, direction: t.direction, htfBias: t.htfBias, imported: t.source !== "manual", psych,
   };
 }
 

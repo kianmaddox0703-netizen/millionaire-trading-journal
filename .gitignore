@@ -10,3 +10,5 @@ data/
 next-env.d.ts
 *.tsbuildinfo
 coverage
+__pycache__/
+*.pyc

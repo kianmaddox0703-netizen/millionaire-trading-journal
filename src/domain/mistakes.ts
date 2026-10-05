@@ -47,6 +47,8 @@ export interface DetectTrade {
   setupQuality: string | null;
   direction: "long" | "short";
   htfBias: string | null;
+  /** came from a file import or MT5 sync; the strategy is unknown rather than missing */
+  imported?: boolean;
   psych?: { fomo?: boolean; revenge?: boolean; movedStop?: boolean; exitedEarly?: boolean; overtraded?: boolean; lateEntry?: boolean; oversized?: boolean } | null;
 }
 
@@ -95,7 +97,8 @@ export function detectMistakes(t: DetectTrade, history: DetectTrade[], rules: Ri
   if (rules.minRr && t.plannedRr !== null && t.plannedRr < rules.minRr)
     add("low_rr", "rule", `Planned R:R 1:${t.plannedRr.toFixed(2)} vs minimum 1:${rules.minRr}.`);
 
-  if (!t.strategyId) add("outside_plan", "rule", "No strategy assigned to this trade.");
+  // Imported trades start without a strategy because the broker doesn't know it, so that isn't a mistake.
+  if (!t.strategyId && !t.imported) add("outside_plan", "rule", "No strategy assigned to this trade.");
   if (t.setupQuality === "C") add("low_quality", "rule", "Setup graded C.");
 
   if (t.htfBias && (t.htfBias === "bullish" || t.htfBias === "bearish")) {

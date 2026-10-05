@@ -114,8 +114,8 @@ ai_analysis          (user_id, trade_id?, image_id?, kind[screenshot|trade_revie
 
 - Auth: `/api/auth/{register,login,logout}`
 - Trades: CRUD via server actions; `/api/trades/[id]/images` (multipart upload, paste), `/api/files/[key]` (authorized image serving)
-- Import: `/api/import/csv` (preview → map → commit, with duplicate report), `/api/import/mt5-report`
-- Ingest: `/api/ingest/mt5` (Bearer API key), `/api/webhooks/tradingview/[token]`
+- Import: `/api/import` (multipart; `action=preview` returns mapping + per-row new/duplicate/error, `action=commit` applies per-row decisions). CSV, Excel and MT5 reports share one endpoint.
+- Ingest: `/api/ingest/mt5` (Bearer API key), `/api/webhooks/tradingview/[token]`, bridge download `/api/bridge/mt5`. Details in `03-integrations.md`.
 - Analytics: computed server-side in pages from `domain/*` with a shared `TradeFilter`
 - Export: `/api/export/{trades,journal,reviews}.{csv,json}`
 - AI: `/api/ai/{screenshot,trade-review,coach}` (disabled without key)
@@ -137,7 +137,7 @@ src/server/*                     db, auth, queries, storage, services
 
 - Passwords: bcrypt (cost 12). Sessions: random 32-byte token, only SHA-256 hash stored, httpOnly/Secure/SameSite=Lax cookie, 30-day expiry.
 - Authorization: `requireUser()` on every page/action/route; every query filters on `user_id`; file keys are random and checked against the owner.
-- Webhook/ingest secrets: random tokens, stored hashed; constant-time compare; never logged.
+- Webhook/ingest secrets: random 256-bit tokens, shown once, stored and looked up only as SHA-256 hashes; never logged.
 - Uploads: MIME sniffed from bytes (jpeg/png/webp only), size cap, re-encoded thumbnails, originals stored outside the web root.
 - Secrets only from env (`.env.example` committed, `.env` gitignored).
 
@@ -147,7 +147,7 @@ src/server/*                     db, auth, queries, storage, services
 |---|---|---|
 | 1 Research | this + 01-research.md | done |
 | 2 Architecture | this doc | done |
-| 3 MVP | auth, accounts, dashboard, trade log, manual/quick entry, screenshots, analytics + filters, strategies, weekly review, calendar, mistakes/psychology basics, seed data, tests | in progress |
-| 4 Integrations | CSV + MT5 report import, duplicates, MT5 bridge, TradingView webhook, matching | next |
+| 3 MVP | auth, accounts, dashboard, trade log, manual/quick entry, screenshots, analytics + filters, strategies, weekly review, calendar, mistakes/psychology basics, seed data, tests | done |
+| 4 Integrations | CSV/Excel/MT5 report import, duplicates, MT5 bridge, TradingView webhook, matching (see 03-integrations.md) | done; market data waits on a provider key |
 | 5 AI | screenshot analysis, trade review, coach, KB-grounded checks | needs ANTHROPIC_API_KEY |
 | 6 Polish | a11y, perf, empty/loading states, mobile passes | |
