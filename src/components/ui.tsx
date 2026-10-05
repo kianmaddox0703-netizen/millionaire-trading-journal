@@ -58,7 +58,7 @@ export function Button({ variant = "default", size = "md", className, ...p }: Co
       className={cx(
         "inline-flex items-center justify-center gap-1.5 rounded border font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
         size === "sm" ? "h-7 px-2 text-[12px]" : "h-8 px-3 text-[13px]",
-        variant === "primary" && "border-info bg-info text-white hover:bg-info/90",
+        variant === "primary" && "border-info-strong bg-info-strong text-white hover:bg-info-strong/90",
         variant === "default" && "border-line-strong bg-surface-2 text-fg hover:bg-surface-3",
         variant === "ghost" && "border-transparent text-muted hover:bg-surface-2 hover:text-fg",
         variant === "danger" && "border-loss/40 bg-loss-soft text-loss hover:bg-loss/20",
@@ -74,7 +74,7 @@ export function LinkButton({ variant = "default", className, ...p }: ComponentPr
       {...p}
       className={cx(
         "inline-flex h-8 items-center justify-center gap-1.5 rounded border px-3 text-[13px] font-medium transition-colors",
-        variant === "primary" && "border-info bg-info text-white hover:bg-info/90",
+        variant === "primary" && "border-info-strong bg-info-strong text-white hover:bg-info-strong/90",
         variant === "default" && "border-line-strong bg-surface-2 text-fg hover:bg-surface-3",
         variant === "ghost" && "border-transparent text-muted hover:bg-surface-2 hover:text-fg",
         className,
@@ -128,7 +128,7 @@ export function PageHeader({ title, sub, actions }: { title: string; sub?: React
 
 export function Table({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cx("scroll-thin overflow-x-auto", className)}>
+    <div tabIndex={0} className={cx("scroll-thin overflow-x-auto", className)}>
       <table className="w-full border-collapse text-[12px]">{children}</table>
     </div>
   );

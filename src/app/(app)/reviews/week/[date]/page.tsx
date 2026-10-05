@@ -21,7 +21,7 @@ export default async function Week({ params }: { params: Promise<{ date: string 
   const values = saved ? Object.fromEntries(Object.entries(saved).map(([k, v]) => [k, typeof v === "string" ? v : ""])) : {};
   return (
     <>
-      <PageHeader title={`Week of ${w}`} sub={`${w} → ${end}`} actions={<>
+      <PageHeader title={`Week of ${w}`} sub={`${w} → ${end}`} actions={<><LinkButton href={`/reports?from=${w}&to=${end}`}>PDF report</LinkButton>
         {saved?.completedAt && <Badge tone="profit">Completed</Badge>}
         <LinkButton href={`/reviews/week/${pw}`}>← Prev</LinkButton><LinkButton href={`/reviews/week/${addDays(w, 7)}`}>Next →</LinkButton>
         <LinkButton href={`/trades?from=${w}&to=${end}`}>Trades</LinkButton></>} />

@@ -9,7 +9,7 @@ export function TopBar({ accounts, selected, selectAccount }: { accounts: { id: 
   const [q, setQ] = useState("");
   const [pending, start] = useTransition();
   return (
-    <header className="sticky top-0 z-20 flex h-12 items-center gap-2 border-b border-line bg-bg/95 pl-14 pr-3 backdrop-blur lg:pl-4">
+    <header className="sticky top-0 z-20 flex h-12 print:hidden items-center gap-2 border-b border-line bg-bg/95 pl-14 pr-3 backdrop-blur lg:pl-4">
       <form className="relative max-w-md flex-1" onSubmit={(e) => { e.preventDefault(); router.push(`/trades?q=${encodeURIComponent(q)}`); }}>
         <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search: EURUSD, London, FOMO, A+ trades, biggest losses…"
@@ -20,7 +20,7 @@ export function TopBar({ accounts, selected, selectAccount }: { accounts: { id: 
         <option value="all">All accounts</option>
         {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
       </select>
-      <Link href="/trades/new" className="inline-flex h-8 items-center gap-1 rounded border border-info bg-info px-2.5 text-[13px] font-medium text-white hover:bg-info/90">
+      <Link href="/trades/new" className="inline-flex h-8 items-center gap-1 rounded border border-info-strong bg-info-strong px-2.5 text-[13px] font-medium text-white hover:bg-info-strong/90">
         <Plus size={14} /> <span className="hidden sm:inline">Add trade</span>
       </Link>
     </header>

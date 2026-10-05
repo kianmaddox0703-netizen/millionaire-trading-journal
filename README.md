@@ -40,6 +40,12 @@ Production: `npm run build && npm start` behind HTTPS, with `COOKIE_SECURE=true`
 
 How each works, its limits and how it was verified: `docs/03-integrations.md`.
 
+## Polish (phase 6)
+
+- **PDF report** (Trades → PDF report, or from any weekly/monthly review): performance, findings, best/worst, mistakes, emotions, equity curve, per-strategy/session/pair tables with evidence labels, and every trade. "Save as PDF" uses the browser's print-to-PDF with a light print palette.
+- **Accessibility**: every page passes an axe-core WCAG 2.1 A/AA audit (contrast, keyboard-reachable scroll areas, list semantics, underlined inline links, labelled controls).
+- **Loading, error and not-found states** inside the app shell.
+
 ## Formulas
 
 All metric math is in `src/domain/metrics.ts`, written out explicitly and unit-tested:
@@ -58,6 +64,8 @@ npm run dev & npm run db:seed
 node scripts/smoke.mjs        # loads every page as the seed user
 node scripts/e2e.mjs          # register → add trade + screenshot → edit → review → export → delete → mobile
 node scripts/e2e-integrations.mjs  # CSV + MT5 report import, duplicates, TradingView webhook, MT5 bridge (needs python3)
+node scripts/a11y.mjs         # axe-core WCAG 2.1 A/AA audit of every page
+OUT=report.pdf node scripts/report-pdf.mjs   # renders the PDF report with Chromium's print engine
 ```
 
 ## Security
@@ -70,6 +78,6 @@ bcrypt passwords; random session tokens stored only as SHA-256 hashes in httpOnl
 |---|---|---|
 | 4 Integrations ✓ | Import, duplicates, MT5 bridge, TradingView webhook, matching are done. Market-data provider waits on a key. | TradingView: a public HTTPS URL, a plan with webhooks, 2FA. Market data: an OANDA practice token or Twelve Data key |
 | 5 AI | Screenshot analysis (observed / inferred / unknown), AI trade review, AI weekly/monthly summaries, AI coach grounded in your data + the knowledge base | `ANTHROPIC_API_KEY` |
-| 6 Polish | Accessibility pass, loading/empty states, performance, PDF export | — |
+| 6 Polish ✓ | PDF report, accessibility audit and fixes, loading/error/not-found states | — |
 
 See `docs/01-research.md` and `docs/02-architecture.md`.

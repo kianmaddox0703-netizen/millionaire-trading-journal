@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { pageContext } from "@/server/page";
 import { db, schema } from "@/server/db";
 import { periodReport } from "@/domain/period";
+import { addDays } from "@/domain/sessions";
 import { summarize } from "@/domain/metrics";
 import { PeriodView } from "@/components/PeriodView";
 import { MonthlyForm } from "@/components/ReviewForms";
@@ -23,7 +24,7 @@ export default async function Month({ params }: { params: Promise<{ month: strin
   const history = [0, -1, -2, -3, -4, -5].map((d) => shift(month, d)).map((m) => ({ m, s: summarize(of(m)), mistakes: of(m).reduce((a, t) => a + t.mistakes.length, 0) }));
   return (
     <>
-      <PageHeader title={`Monthly review · ${month}`} actions={<><LinkButton href={`/reviews/month/${prev}`}>← Prev</LinkButton><LinkButton href={`/reviews/month/${shift(month, 1)}`}>Next →</LinkButton></>} />
+      <PageHeader title={`Monthly review · ${month}`} actions={<><LinkButton href={`/reports?from=${month}-01&to=${addDays(`${shift(month, 1)}-01`, -1)}`}>PDF report</LinkButton><LinkButton href={`/reviews/month/${prev}`}>← Prev</LinkButton><LinkButton href={`/reviews/month/${shift(month, 1)}`}>Next →</LinkButton></>} />
       <div className="grid gap-3 xl:grid-cols-[1fr_420px]">
         <div className="space-y-3">
           <PeriodView r={r} currency={currency} />

@@ -22,7 +22,7 @@ function StatTable({ rows, label }: { rows: GroupStat[]; label: string }) {
     <Table>
       <thead><tr>{[label, "n", "Win rate", "Avg R", "Median R", "Total R", "Expectancy $", "Net P&L", "Evidence"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
       <tbody>{rows.map((g) => (
-        <tr key={g.key} className={cx("hover:bg-surface-2", g.n < 10 && "opacity-70")}>
+        <tr key={g.key} className="hover:bg-surface-2">
           <td className={cx(td, "max-w-[200px] truncate")}>{g.key}</td><td className={cx(td, "num")}>{g.n}</td><td className={cx(td, "num")}>{fmtRate(g.winRate)}</td>
           <td className={cx(td, "num", tone(g.avgR))}>{fmtR(g.avgR)}</td><td className={cx(td, "num", tone(g.medianR))}>{fmtR(g.medianR)}</td><td className={cx(td, "num", tone(g.totalR))}>{fmtR(g.totalR, 1)}</td>
           <td className={cx(td, "num", tone(g.expectancy))}>{fmtMoney(g.expectancy, "USD", true)}</td><td className={cx(td, "num", tone(g.netPnl))}>{fmtMoney(g.netPnl, "USD", true)}</td><td className={td}><StrengthBadge s={g.strength} /></td>
@@ -87,12 +87,12 @@ export default async function Performance({ searchParams }: { searchParams: Prom
           <div className="grid gap-3 lg:grid-cols-3">
             <Card title="R-multiple distribution" className="lg:col-span-2"><Histogram data={rHistogram(rows)} height={220} /></Card>
             <Card title="Winners vs losers">
-              <dl className="grid grid-cols-2 gap-3 text-[12px]">
+              <div className="grid grid-cols-2 gap-3 text-[12px]">
                 <Stat label="Winners" value={winners.length} sub={`avg ${fmtR(s.avgWinR)}`} valueClass="text-profit" />
                 <Stat label="Losers" value={losers.length} sub={`avg ${fmtR(s.avgLossR)}`} valueClass="text-loss" />
                 <Stat label="Losers worse than −1R" value={losers.filter((t) => (t.rMultiple ?? 0) < -1.05).length} hint="Losses beyond the planned stop (slippage, moved stop, costs)" valueClass="text-warn" />
                 <Stat label="Winners ≥ 2R" value={winners.filter((t) => (t.rMultiple ?? 0) >= 2).length} />
-              </dl>
+              </div>
               <p className="mt-3 text-[11px] text-faint">R normalises every trade by the risk you took, so execution quality is comparable across position sizes.</p>
             </Card>
             <Card title="R by strategy"><PnlBars horizontal unit="R" data={sumBy(rows, (t) => t.strategyName ?? "No strategy", "r").sort((a, b) => b.value - a.value)} /></Card>
@@ -111,7 +111,7 @@ export default async function Performance({ searchParams }: { searchParams: Prom
                     <ul className="space-y-2">
                       {list.map((c) => (
                         <li key={c.stat.key} className="rounded border border-line bg-surface-2 p-2 text-[12px]">
-                          <div className="flex flex-wrap items-center gap-1.5">{c.conditions.map((x) => <span key={x.dim} className="rounded bg-surface-3 px-1.5 py-px"><span className="text-faint">{x.dim}:</span> {x.value}</span>)}</div>
+                          <div className="flex flex-wrap items-center gap-1.5">{c.conditions.map((x) => <span key={x.dim} className="rounded bg-surface-3 px-1.5 py-px"><span className="text-muted">{x.dim}:</span> {x.value}</span>)}</div>
                           <div className="num mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
                             <span>Win rate {fmtRate(c.stat.winRate)}</span>
                             <span className={tone(c.stat.avgR)}>Avg {fmtR(c.stat.avgR)}</span>

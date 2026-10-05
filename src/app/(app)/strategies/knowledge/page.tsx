@@ -31,7 +31,7 @@ export default async function Knowledge() {
             <Card key={area} title={area}>
               <div className="grid gap-3 lg:grid-cols-2">
                 {items.map((c) => (
-                  <article key={c.slug} id={c.slug} className={cx("scroll-mt-16 rounded border border-line bg-surface-2 p-3", c.confidence === "none" && "opacity-80")}>
+                  <article key={c.slug} id={c.slug} className={cx("scroll-mt-16 rounded border border-line bg-surface-2 p-3", c.confidence === "none" && "border-dashed")}>
                     <header className="mb-1 flex flex-wrap items-center gap-1.5">
                       <h3 className="mr-auto text-[13px] font-medium">{c.name}</h3>
                       <Badge>{CAT[c.category]}</Badge>
@@ -44,7 +44,7 @@ export default async function Knowledge() {
                     {c.sources.length > 0 && (
                       <ul className="mt-2 space-y-0.5 border-t border-line pt-1.5 text-[11px] text-muted">
                         {c.sources.map((s) => (
-                          <li key={s.id}><Badge className="mr-1" tone={s.kind === "primary" ? "info" : "neutral"}>{s.kind === "third_party" ? "third-party" : s.kind}</Badge><a href={s.url} target="_blank" rel="noreferrer noopener" className="text-fg hover:text-info">{s.title}</a>{s.locator && ` · ${s.locator}`}: {s.summary}</li>
+                          <li key={s.id}><Badge className="mr-1" tone={s.kind === "primary" ? "info" : "neutral"}>{s.kind === "third_party" ? "third-party" : s.kind}</Badge><a href={s.url} target="_blank" rel="noreferrer noopener" className="text-fg underline decoration-line-strong underline-offset-2 hover:text-info">{s.title}</a>{s.locator && ` · ${s.locator}`}: {s.summary}</li>
                         ))}
                       </ul>
                     )}

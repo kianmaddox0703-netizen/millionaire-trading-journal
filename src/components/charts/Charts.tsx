@@ -11,7 +11,7 @@ const fmtAxis = (v: number) => (Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k
 
 export interface EqPoint { t: number; balance: number; hwm: number; drawdown: number; drawdownPct: number; returnPct: number; cumR: number; rHwm: number; rDrawdown: number }
 
-export function EquityChart({ points, start, height = 260 }: { points: EqPoint[]; start: number; height?: number }) {
+export function EquityChart({ points, start, height = 260, printWidth }: { points: EqPoint[]; start: number; height?: number; printWidth?: number }) {
   const [mode, setMode] = useState<"$" | "%" | "R">("$");
   const data = [{ t: points[0]?.t ? points[0].t - 1 : 0, balance: start, hwm: start, drawdown: 0, drawdownPct: 0, returnPct: 0, cumR: 0, rHwm: 0, rDrawdown: 0 }, ...points].map((p) => ({
     t: p.t,
@@ -20,6 +20,18 @@ export function EquityChart({ points, start, height = 260 }: { points: EqPoint[]
     dd: mode === "$" ? -p.drawdown : mode === "%" ? -p.drawdownPct : -p.rDrawdown,
   }));
   const unit = (v: number) => (mode === "$" ? `$${v.toFixed(2)}` : mode === "%" ? `${v.toFixed(2)}%` : `${v.toFixed(2)}R`);
+  const chart = (size: { width?: number; height?: number }) => (
+    <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} {...size}>
+      <CartesianGrid vertical={false} />
+      <XAxis dataKey="t" type="number" domain={["dataMin", "dataMax"]} tickFormatter={(t) => new Date(t).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} tickLine={false} axisLine={false} minTickGap={40} />
+      <YAxis yAxisId="v" tickFormatter={fmtAxis} tickLine={false} axisLine={false} width={48} domain={["auto", "auto"]} />
+      <YAxis yAxisId="dd" orientation="right" hide domain={([min]: readonly [number, number]) => [Math.min(min * 3, -1), 0] as const} />
+      <Tooltip contentStyle={tooltipStyle} labelFormatter={(t) => new Date(Number(t)).toLocaleString("en-GB")} formatter={(v, k) => [unit(Number(v)), k === "v" ? (mode === "R" ? "Cum. R" : mode === "%" ? "Return" : "Balance") : k === "hwm" ? "High-water" : "Drawdown"]} />
+      <Area yAxisId="dd" dataKey="dd" type="stepAfter" fill={C.loss} fillOpacity={0.12} stroke="none" isAnimationActive={false} />
+      <Line yAxisId="v" dataKey="hwm" type="stepAfter" stroke={C.muted} strokeDasharray="3 3" dot={false} strokeWidth={1} isAnimationActive={false} />
+      <Line yAxisId="v" dataKey="v" type="linear" stroke={C.info} dot={false} strokeWidth={1.75} isAnimationActive={false} />
+    </ComposedChart>
+  );
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
@@ -28,24 +40,15 @@ export function EquityChart({ points, start, height = 260 }: { points: EqPoint[]
           <span className="flex items-center gap-1"><i className="inline-block h-0.5 w-3 border-t border-dashed border-muted" /> High-water mark</span>
           <span className="flex items-center gap-1"><i className="inline-block h-2 w-3 bg-loss/30" /> Drawdown</span>
         </div>
-        <div className="flex rounded border border-line p-px" role="group" aria-label="Units">
+        <div className="flex rounded border border-line p-px print:hidden" role="group" aria-label="Units">
           {(["$", "%", "R"] as const).map((m) => (
-            <button key={m} onClick={() => setMode(m)} className={`h-6 w-7 rounded-sm text-[11px] ${mode === m ? "bg-surface-3 text-fg" : "text-muted hover:text-fg"}`}>{m}</button>
+            <button key={m} aria-pressed={mode === m} onClick={() => setMode(m)} className={`h-6 w-7 rounded-sm text-[11px] ${mode === m ? "bg-surface-3 text-fg" : "text-muted hover:text-fg"}`}>{m}</button>
           ))}
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={height}>
-        <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-          <CartesianGrid vertical={false} />
-          <XAxis dataKey="t" type="number" domain={["dataMin", "dataMax"]} tickFormatter={(t) => new Date(t).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} tickLine={false} axisLine={false} minTickGap={40} />
-          <YAxis yAxisId="v" tickFormatter={fmtAxis} tickLine={false} axisLine={false} width={48} domain={["auto", "auto"]} />
-          <YAxis yAxisId="dd" orientation="right" hide domain={([min]: readonly [number, number]) => [Math.min(min * 3, -1), 0] as const} />
-          <Tooltip contentStyle={tooltipStyle} labelFormatter={(t) => new Date(Number(t)).toLocaleString("en-GB")} formatter={(v, k) => [unit(Number(v)), k === "v" ? (mode === "R" ? "Cum. R" : mode === "%" ? "Return" : "Balance") : k === "hwm" ? "High-water" : "Drawdown"]} />
-          <Area yAxisId="dd" dataKey="dd" type="stepAfter" fill={C.loss} fillOpacity={0.12} stroke="none" isAnimationActive={false} />
-          <Line yAxisId="v" dataKey="hwm" type="stepAfter" stroke={C.muted} strokeDasharray="3 3" dot={false} strokeWidth={1} isAnimationActive={false} />
-          <Line yAxisId="v" dataKey="v" type="linear" stroke={C.info} dot={false} strokeWidth={1.75} isAnimationActive={false} />
-        </ComposedChart>
-      </ResponsiveContainer>
+      {/* Screen: responsive. Print: fixed width, because the page is re-laid out for paper without a resize. */}
+      <div className={printWidth ? "print:hidden" : undefined}><ResponsiveContainer width="100%" height={height}>{chart({})}</ResponsiveContainer></div>
+      {printWidth && <div className="hidden print:block">{chart({ width: printWidth, height })}</div>}
     </div>
   );
 }

@@ -24,7 +24,7 @@ export function AuthForm({ mode, action }: { mode: "login" | "register"; action:
         {state?.error && <div className="text-[12px] text-loss" role="alert">{state.error}</div>}
         <Button variant="primary" className="w-full" disabled={pending}>{pending ? "…" : mode === "login" ? "Sign in" : "Create account"}</Button>
         <div className="text-center text-[12px] text-muted">
-          {mode === "login" ? <>No account? <Link className="text-info" href="/register">Create one</Link></> : <>Have an account? <Link className="text-info" href="/login">Sign in</Link></>}
+          {mode === "login" ? <>No account? <Link className="text-info underline underline-offset-2" href="/register">Create one</Link></> : <>Have an account? <Link className="text-info underline underline-offset-2" href="/login">Sign in</Link></>}
         </div>
       </form>
     </div>

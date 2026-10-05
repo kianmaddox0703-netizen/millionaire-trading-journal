@@ -150,4 +150,4 @@ src/server/*                     db, auth, queries, storage, services
 | 3 MVP | auth, accounts, dashboard, trade log, manual/quick entry, screenshots, analytics + filters, strategies, weekly review, calendar, mistakes/psychology basics, seed data, tests | done |
 | 4 Integrations | CSV/Excel/MT5 report import, duplicates, MT5 bridge, TradingView webhook, matching (see 03-integrations.md) | done; market data waits on a provider key |
 | 5 AI | screenshot analysis, trade review, coach, KB-grounded checks | needs ANTHROPIC_API_KEY |
-| 6 Polish | a11y, perf, empty/loading states, mobile passes | |
+| 6 Polish | PDF report (print-to-PDF), axe-core WCAG 2.1 AA pass, loading/error/not-found states | done |

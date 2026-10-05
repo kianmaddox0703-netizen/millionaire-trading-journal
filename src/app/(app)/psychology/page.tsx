@@ -23,7 +23,7 @@ export default async function Psychology() {
     <Table>
       <thead><tr>{["Condition", "n", "Win rate", "95% range", "Avg R", "Total R", "Evidence"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>
       <tbody>{rows.map((g) => (
-        <tr key={g.key} className={g.n < 10 ? "opacity-60" : undefined}>
+        <tr key={g.key}>
           <td className={td}>{g.key}</td><td className={cx(td, "num")}>{g.n}</td><td className={cx(td, "num")}>{fmtRate(g.winRate)}</td>
           <td className={cx(td, "num text-faint")}>{g.winRateCi ? `${Math.round(g.winRateCi.low * 100)}–${Math.round(g.winRateCi.high * 100)}%` : "—"}</td>
           <td className={cx(td, "num", tone(g.avgR))}>{fmtR(g.avgR)}</td><td className={cx(td, "num", tone(g.totalR))}>{fmtR(g.totalR, 1)}</td><td className={td}><StrengthBadge s={g.strength} /></td>

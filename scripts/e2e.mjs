@@ -9,6 +9,8 @@ const page = await ctx.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 const step = (s) => console.log("•", s);
+// pages stream in behind a loading skeleton, so wait for content instead of checking once
+const visible = (sel, msg) => page.locator(sel).first().waitFor({ timeout: 15000 }).catch(() => assert.fail(msg ?? `not visible: ${sel}`));
 
 const email = `e2e-${Date.now()}@test.local`;
 step("register");
@@ -16,7 +18,7 @@ await page.goto(`${BASE}/register`);
 await page.fill('input[name="email"]', email);
 await page.fill('input[name="password"]', "correct-horse-battery");
 await Promise.all([page.waitForURL("**/dashboard"), page.click("button:has-text('Create account')")]);
-assert.ok(await page.locator("text=No closed trades yet").isVisible());
+await visible("text=No closed trades yet");
 
 step("quick-add a trade with a screenshot");
 await page.goto(`${BASE}/trades/new`);
@@ -27,15 +29,15 @@ await page.fill('input[placeholder="1.08450"]', "1.08450");
 await page.locator("label:has-text('Exit price') input").fill("1.08450");
 await page.locator("label:has-text('Net P&L') input").fill("193");
 await page.locator("label:has-text('Risk $') input").fill("100");
-assert.ok(await page.locator("text=1:2.00").isVisible(), "planned R:R preview");
-assert.ok(await page.locator("text=+1.93R").isVisible(), "R preview");
+await visible("text=1:2.00", "planned R:R preview");
+await visible("text=+1.93R", "R preview");
 const png = await sharp({ create: { width: 1200, height: 700, channels: 3, background: "#222" } }).png().toBuffer();
 await page.setInputFiles('input[type="file"]', { name: "entry.png", mimeType: "image/png", buffer: png });
 await page.locator("button:has-text('Save trade')").click();
 await page.waitForURL(/\/trades\/[0-9A-Z]{26}$/);
 const tradeUrl = page.url();
-assert.ok(await page.locator("h1:has-text('EURUSD Long')").isVisible());
-assert.ok(await page.locator("text=+1.93R").first().isVisible());
+await visible("h1:has-text('EURUSD Long')");
+await visible("text=+1.93R");
 await page.waitForSelector('img[src*="/api/files/"]');
 await page.waitForFunction(() => { const i = document.querySelector('img[src*="/api/files/"]'); return i && i.complete && i.naturalWidth > 0; }, null, { timeout: 15000 });
 
@@ -51,13 +53,13 @@ await page.locator("label:has-text('Net P&L') input").fill("-107");
 await page.locator("label:has-text('Exit price') input").fill("1.08150");
 await page.locator("button:has-text('Save changes')").click();
 await page.waitForURL(tradeUrl);
-assert.ok(await page.locator("text=−1.07R").first().isVisible());
+await visible("text=−1.07R");
 
 step("trade appears in the log and dashboard");
 await page.goto(`${BASE}/trades`);
 assert.equal(await page.locator("tbody tr").count(), 1);
 await page.goto(`${BASE}/dashboard`);
-assert.ok(await page.locator("text=How am I trading?").isVisible());
+await visible("text=How am I trading?");
 
 step("weekly review saves");
 await page.goto(`${BASE}/reviews/week/2026-03-02`);
@@ -75,7 +77,7 @@ await page.goto(tradeUrl);
 page.once("dialog", (d) => d.accept());
 await page.locator("button:has-text('Delete')").click();
 await page.waitForURL(`${BASE}/trades`);
-assert.ok(await page.locator("text=No trades yet").isVisible());
+await visible("text=No trades yet");
 
 step("mobile layout");
 await page.setViewportSize({ width: 390, height: 844 });

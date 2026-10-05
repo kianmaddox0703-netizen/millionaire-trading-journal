@@ -1,0 +1,22 @@
+// Renders /reports as the seed user to a PDF with Chromium's print engine (what "Save as PDF" produces).
+import { chromium } from "playwright";
+import assert from "node:assert/strict";
+const BASE = process.env.BASE_URL ?? "http://localhost:3000";
+const OUT = process.env.OUT ?? "report.pdf";
+const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
+const page = await (await browser.newContext({ viewport: { width: 1200, height: 900 } })).newPage();
+await page.goto(`${BASE}/login`);
+await page.fill('input[name="email"]', process.env.SEED_EMAIL ?? "demo@mtj.local");
+await page.fill('input[name="password"]', process.env.SEED_PASSWORD ?? "demo-password-123");
+await Promise.all([page.waitForURL("**/dashboard"), page.click("button:has-text('Sign in')")]);
+await page.goto(`${BASE}/reports?${process.env.QS ?? "range=90d"}`);
+await page.waitForSelector(".recharts-surface");
+assert.ok(await page.locator("text=Trading performance").isVisible());
+await page.emulateMedia({ media: "print" });
+assert.equal(await page.locator("aside").first().isVisible(), false, "sidebar hidden in print");
+assert.equal(await page.locator("button:has-text('Save as PDF')").isVisible(), false, "controls hidden in print");
+const fg = await page.evaluate(() => getComputedStyle(document.body).color);
+assert.equal(fg, "rgb(17, 20, 24)", "dark text on paper");
+await page.pdf({ path: OUT, format: "A4", printBackground: true });
+await browser.close();
+console.log("pdf written:", OUT);

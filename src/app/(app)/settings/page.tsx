@@ -100,6 +100,7 @@ export default async function Settings() {
             <LinkButton prefetch={false} href="/api/export/trades?format=json">Trades + journal JSON</LinkButton>
             <LinkButton prefetch={false} href="/api/export/reviews?format=json">Reviews JSON</LinkButton>
             <LinkButton prefetch={false} href="/api/export/reviews?format=csv">Reviews CSV</LinkButton>
+            <LinkButton href="/reports">Performance report (PDF)</LinkButton>
           </div>
         </Card>
 

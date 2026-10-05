@@ -15,6 +15,8 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => m.type() === "error" && !/favicon/.test(m.text()) && errors.push(m.text()));
 const step = (s) => console.log("•", s);
+// pages stream in behind a loading skeleton, so wait for content instead of checking once
+const visible = (sel, msg) => page.locator(sel).first().waitFor({ timeout: 15000 }).catch(() => assert.fail(msg ?? `not visible: ${sel}`));
 const shot = async (name) => SHOTS && page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true });
 
 step("register a fresh user");
@@ -34,7 +36,7 @@ await page.goto(`${BASE}/trades/import`);
 await page.setInputFiles('input[type="file"]', { name: "journal.csv", mimeType: "text/csv", buffer: Buffer.from(csv) });
 await page.waitForSelector("text=3 new");
 assert.equal(await page.locator("label:has-text('Ticket / position ID') select").inputValue(), "0", "ticket auto-mapped");
-assert.ok(await page.locator("text=1.0825").first().isVisible(), "European decimals parsed");
+await visible("text=1.0825", "European decimals parsed");
 await shot("import-preview");
 await page.click("button:has-text('Import 3 new')");
 await page.waitForSelector("text=Import finished: 3 created");
@@ -69,7 +71,7 @@ assert.equal((await fetch(BASE + "/api/webhooks/tradingview/" + "x".repeat(43), 
 assert.equal((await post("x".repeat(20_000))).status, 413, "oversized body");
 await page.reload();
 await page.waitForSelector("text=4H trend up, AOI retest");
-assert.ok(await page.locator("td:has-text('Pullback to AOI') ~ td a").first().isVisible(), "alert auto-linked to the EURUSD trade");
+await visible("td:has-text('Pullback to AOI') ~ td a", "alert auto-linked to the EURUSD trade");
 await shot("integrations");
 
 step("alert shows on the trade; unlink and relink");

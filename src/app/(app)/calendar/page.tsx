@@ -51,13 +51,13 @@ export default async function Calendar({ searchParams }: { searchParams: Promise
                   const intensity = ts.length ? Math.min(1, Math.abs(s.netPnl) / maxAbs) : 0;
                   const bg = !ts.length ? undefined : s.netPnl >= 0 ? `rgba(47,191,113,${0.05 + intensity * 0.17})` : `rgba(239,83,80,${0.05 + intensity * 0.17})`;
                   const body = (
-                    <div className={cx("h-[92px] border-b border-r border-line/60 p-1.5 text-[11px]", !inMonth && "opacity-35", d === today && "ring-1 ring-inset ring-info")} style={{ background: bg }}>
+                    <div className={cx("h-[92px] border-b border-r border-line/60 p-1.5 text-[11px]", !inMonth && "bg-bg", d === today && "ring-1 ring-inset ring-info")} style={{ background: bg }}>
                       <div className="flex items-center justify-between text-faint"><span className="num">{Number(d.slice(8))}</span>{mistakes > 0 && <span className="text-warn" title="Mistakes">⚠ {mistakes}</span>}</div>
                       {ts.length > 0 && (
                         <div className="mt-1 space-y-px">
                           <div className={cx("num text-[13px] font-medium", tone(s.netPnl))}>{fmtMoneyShort(s.netPnl)}</div>
                           <div className="num text-muted">{ts.length}t · {fmtRate(s.winRate)} · {fmtR(s.totalR, 1)}</div>
-                          {emo && <div className="truncate text-faint">{emo}</div>}
+                          {emo && <div className="truncate text-muted">{emo}</div>}
                         </div>
                       )}
                     </div>

@@ -84,7 +84,7 @@ export default async function Dashboard() {
 
         <div className="space-y-3">
           <Card title="Trading quality" pad={false}>
-            <dl className="divide-y divide-line/60 text-[12px]">
+            <ul className="divide-y divide-line/60 text-[12px]">
               {[
                 ["A+ setups taken", count((t) => t.setupQuality === "A+"), "/trades?quality=A%2B"],
                 ["A setups taken", count((t) => t.setupQuality === "A"), "/trades?quality=A"],
@@ -99,12 +99,14 @@ export default async function Dashboard() {
                 ["Early exits", count(has("early_exit")), "/trades?mistake=early_exit"],
                 ["Oversized positions", count(has("oversized")), "/trades?mistake=oversized"],
               ].map(([label, n, href], i) => (
-                <Link key={label as string} href={href as string} className={cx("flex items-center justify-between px-3 py-1.5 hover:bg-surface-2", i === 4 && "border-t border-line")}>
-                  <dt className="text-muted">{label}</dt>
-                  <dd className={cx("num", i >= 4 && (n as number) > 0 ? "text-warn" : "text-fg")}>{n as number}</dd>
-                </Link>
+                <li key={label as string} className={cx(i === 4 && "border-t border-line")}>
+                  <Link href={href as string} className="flex items-center justify-between px-3 py-1.5 hover:bg-surface-2">
+                    <span className="text-muted">{label}</span>
+                    <span className={cx("num", i >= 4 && (n as number) > 0 ? "text-warn" : "text-fg")}>{n as number}</span>
+                  </Link>
+                </li>
               ))}
-            </dl>
+            </ul>
           </Card>
 
           <Card title="Your #1 mistake this month">

@@ -48,8 +48,8 @@ export function Sidebar({ logout }: { logout: () => Promise<void> }) {
   );
   return (
     <>
-      <aside className="sticky top-0 hidden h-dvh w-52 shrink-0 flex-col border-r border-line bg-surface lg:flex">{brand}{nav}</aside>
-      <button aria-label="Open menu" onClick={() => setOpen(true)} className="fixed left-3 top-2.5 z-30 grid h-8 w-8 place-items-center rounded border border-line bg-surface lg:hidden"><Menu size={16} /></button>
+      <aside className="sticky top-0 hidden h-dvh w-52 shrink-0 flex-col border-r border-line bg-surface lg:flex print:hidden">{brand}{nav}</aside>
+      <button aria-label="Open menu" onClick={() => setOpen(true)} className="fixed left-3 top-2.5 z-30 grid h-8 w-8 place-items-center rounded border border-line bg-surface lg:hidden print:hidden"><Menu size={16} /></button>
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
