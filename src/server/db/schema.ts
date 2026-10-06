@@ -19,6 +19,8 @@ export const users = sqliteTable("users", {
   name: text("name").notNull().default(""),
   timezone: text("timezone").notNull().default("UTC"),
   baseCurrency: text("base_currency").notNull().default("USD"),
+  // generate an AI review once when a trade is first closed (only when an AI key is configured)
+  aiAutoReview: bool("ai_auto_review").notNull().default(true),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -274,7 +276,10 @@ export const marketContext = sqliteTable("market_context", {
   volatility: text("volatility"),
   atr: real("atr"),
   nearKeyLevel: bool("near_key_level"),
-  details: text("details"),
+  details: text("details"), // JSON: definitions, levels, data range; never raw credentials
+  status: text("status", { enum: ["ok", "error", "unsupported", "pending"] }).notNull().default("ok"),
+  error: text("error"),
+  instrument: text("instrument"),
   computedAt: createdAt(),
 });
 
@@ -437,10 +442,37 @@ export const aiAnalysis = sqliteTable("ai_analysis", {
   tradeId: text("trade_id").references(() => trades.id, { onDelete: "cascade" }),
   imageId: text("image_id").references(() => tradeImages.id, { onDelete: "cascade" }),
   kind: text("kind", { enum: ["screenshot", "trade_review", "weekly", "monthly", "coach"] }).notNull(),
+  // weekly: "YYYY-MM-DD|<accountId or all>" (Monday), monthly: "YYYY-MM|<accountId or all>"
+  periodKey: text("period_key"),
   model: text("model").notNull(),
-  output: text("output").notNull(), // JSON with observed/inferred/unknown etc.
+  status: text("status", { enum: ["ok", "error"] }).notNull().default("ok"),
+  error: text("error"),
+  output: text("output").notNull().default(""), // JSON validated against the kind's zod schema
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
   createdAt: createdAt(),
-});
+}, (t) => [index("ai_analysis_trade").on(t.tradeId, t.kind), index("ai_analysis_period").on(t.userId, t.kind, t.periodKey)]);
+
+export const coachConversations = sqliteTable("coach_conversations", {
+  id: id(),
+  userId: userId(),
+  title: text("title").notNull().default(""),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [index("coach_conv_user").on(t.userId, t.updatedAt)]);
+
+export const coachMessages = sqliteTable("coach_messages", {
+  id: id(),
+  conversationId: text("conversation_id").notNull().references(() => coachConversations.id, { onDelete: "cascade" }),
+  userId: userId(),
+  role: text("role", { enum: ["user", "assistant"] }).notNull(),
+  content: text("content").notNull(),
+  tools: text("tools").notNull().default(""), // comma-separated names of the data tools used for this answer
+  model: text("model"),
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
+  createdAt: createdAt(),
+}, (t) => [index("coach_msg_conv").on(t.conversationId, t.createdAt)]);
 
 // ───────────── relations ─────────────
 

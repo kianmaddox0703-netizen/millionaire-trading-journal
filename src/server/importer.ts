@@ -147,7 +147,7 @@ export function buildPreview(userId: string, parsed: ParsedFile, o: ImportOption
 // ───────────── commit ─────────────
 
 export type Decision = "skip" | "merge" | "create";
-export interface ImportSummary { created: number; merged: number; skipped: number; failed: { row: number; error: string }[]; firstOpenedAt: Date | null }
+export interface ImportSummary { created: number; merged: number; skipped: number; failed: { row: number; error: string }[]; firstOpenedAt: Date | null; tradeIds: string[] }
 
 function strategyLookup(userId: string) {
   const strategies = db.query.strategies.findMany({ where: eq(schema.strategies.userId, userId), with: { setups: true } }).sync();
@@ -210,18 +210,18 @@ export function commitImport(userId: string, parsed: ParsedFile, o: ImportOption
   const preview = buildPreview(userId, parsed, o);
   const lookup = strategyLookup(userId);
   const source: Source = parsed.format === "mt5_report" ? "mt5_report" : "csv";
-  const sum: ImportSummary = { created: 0, merged: 0, skipped: 0, failed: [], firstOpenedAt: null };
+  const sum: ImportSummary = { created: 0, merged: 0, skipped: 0, failed: [], firstOpenedAt: null, tradeIds: [] };
   const rows = preview.flatMap((p) => (p.status === "error" ? (sum.failed.push({ row: p.row, error: p.error }), []) : [p]));
   rows.sort((a, b) => a.trade.openedAt.getTime() - b.trade.openedAt.getTime());
   for (const p of rows) {
     const d = decisions[p.row] ?? (p.status === "new" ? "create" : "skip");
     const dupInFile = p.duplicateOf?.id.startsWith("row:") ?? false;
     try {
-      if (d === "merge" && p.duplicateOf && !dupInFile) { mergeIntoTrade(userId, p.duplicateOf.id, p.trade); sum.merged++; }
+      if (d === "merge" && p.duplicateOf && !dupInFile) { mergeIntoTrade(userId, p.duplicateOf.id, p.trade); sum.merged++; sum.tradeIds.push(p.duplicateOf.id); }
       else if (d === "create") {
         // a broker ID can belong to only one trade per account; "create anyway" keeps the row but not the ID
         const t = p.duplicateOf && p.trade.externalRef && p.trade.externalRef === p.duplicateOf.ref ? { ...p.trade, externalRef: null } : p.trade;
-        createFromImport(userId, o.accountId, t, source, lookup(t.strategy, t.setup));
+        sum.tradeIds.push(createFromImport(userId, o.accountId, t, source, lookup(t.strategy, t.setup)));
         sum.created++;
       } else { sum.skipped++; continue; }
       if (!sum.firstOpenedAt || p.trade.openedAt < sum.firstOpenedAt) sum.firstOpenedAt = p.trade.openedAt;

@@ -72,7 +72,7 @@ const changed = (row: typeof schema.trades.$inferSelect, t: ImportedTrade) => {
     || diff(row.grossPnl, t.grossPnl) || diff(row.commission, t.commission) || diff(row.swap, t.swap);
 };
 
-export interface IngestResult { deals: number; created: number; updated: number; unchanged: number }
+export interface IngestResult { deals: number; created: number; updated: number; unchanged: number; tradeIds: string[] }
 
 export function ingestMt5(conn: { id: string; userId: string; accountId: string }, p: IngestPayload): IngestResult {
   if (!validZone(p.server_time_zone)) throw new Error("Unknown server_time_zone");
@@ -94,7 +94,7 @@ export function ingestMt5(conn: { id: string; userId: string; accountId: string 
   });
 
   const positions = [...new Set(tradeDeals.map((d) => d.position_id))];
-  const res: IngestResult = { deals: tradeDeals.length, created: 0, updated: 0, unchanged: 0 };
+  const res: IngestResult = { deals: tradeDeals.length, created: 0, updated: 0, unchanged: 0, tradeIds: [] };
   let earliest: Date | null = null;
   if (positions.length) {
     const stored = db.select().from(D).where(and(eq(D.accountId, accountId), inArray(D.positionId, positions))).all();
@@ -106,8 +106,8 @@ export function ingestMt5(conn: { id: string; userId: string; accountId: string 
       const row = byRef.get(t.externalRef!);
       if (row && !changed(row, t)) { res.unchanged++; continue; }
       const target = row?.id ?? findDuplicate(t, unref)?.trade.id;
-      if (target) { mergeIntoTrade(userId, target, t); res.updated++; }
-      else { createFromImport(userId, accountId, t, "mt5_bridge", { strategyId: null, setupId: null }); res.created++; }
+      if (target) { mergeIntoTrade(userId, target, t); res.updated++; res.tradeIds.push(target); }
+      else { res.tradeIds.push(createFromImport(userId, accountId, t, "mt5_bridge", { strategyId: null, setupId: null })); res.created++; }
       if (!earliest || t.openedAt < earliest) earliest = t.openedAt;
     }
   }

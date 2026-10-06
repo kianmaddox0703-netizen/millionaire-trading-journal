@@ -6,6 +6,7 @@ import { deleteTrade, NotFoundError, saveTrade } from "@/server/trades";
 import { db, schema } from "@/server/db";
 import { and, eq } from "drizzle-orm";
 import { deleteStored } from "@/server/storage";
+import { afterTradesSaved } from "@/server/hooks";
 
 export type SaveResult = { ok: true; id: string } | { ok: false; error: string; fieldErrors?: Record<string, string> };
 
@@ -19,6 +20,7 @@ export async function saveTradeAction(raw: unknown, tradeId?: string): Promise<S
   }
   try {
     const id = saveTrade(user.id, parsed.data, tradeId);
+    afterTradesSaved(user.id, [id], "manual");
     revalidatePath("/", "layout");
     return { ok: true, id };
   } catch (e) {

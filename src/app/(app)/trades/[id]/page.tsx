@@ -7,13 +7,16 @@ import { getRiskRules } from "@/server/trades";
 import { loadTrades } from "@/server/analytics";
 import { reviewTrade } from "@/domain/review";
 import { MISTAKE_LABEL } from "@/domain/mistakes";
-import { Card, PageHeader, Badge, LinkButton, Stat, StatGrid, StrengthBadge, Note, cx } from "@/components/ui";
+import { Card, PageHeader, Badge, LinkButton, Stat, StatGrid, StrengthBadge, cx } from "@/components/ui";
 import { Gallery } from "@/components/trade/Gallery";
 import { DeleteTrade } from "@/components/trade/DeleteTrade";
 import { fmtDate, fmtDuration, fmtMoney, fmtNum, fmtPrice, fmtR, fmtRate, tone, cap } from "@/lib/format";
-import { config } from "@/server/config";
 import { alertsForTrade, nearbyAlerts } from "@/server/tradingview";
 import { TradeAlerts } from "@/components/Integrations";
+import { MarketContextCard } from "@/components/market/MarketContextCard";
+import { ScreenshotAnalysisCard } from "@/components/ai/ScreenshotAnalysisCard";
+import { AiReviewCard } from "@/components/ai/AiReviewCard";
+import { AskCoachLink } from "@/components/ai/AskCoachLink";
 
 export const metadata = { title: "Trade" };
 const SOURCE_LABEL = { manual: "Manual", csv: "File import", mt5_report: "MT5 report", mt5_bridge: "MT5 sync" } as const;
@@ -54,7 +57,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
           {row.setupQuality && <Badge>{row.setupQuality}</Badge>}
           <Badge>{SOURCE_LABEL[row.source]}</Badge>
         </span>}
-        actions={<><LinkButton href={`/trades/${id}/edit`}>Edit</LinkButton><DeleteTrade id={id} /></>}
+        actions={<><AskCoachLink tradeId={id} seq={row.seq} /><LinkButton href={`/trades/${id}/edit`}>Edit</LinkButton><DeleteTrade id={id} /></>}
       />
 
       <div className="grid gap-3 xl:grid-cols-[1fr_380px]">
@@ -113,6 +116,8 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
             </Card>
           </div>
 
+          <MarketContextCard userId={user.id} tradeId={id} tz={tz} />
+
           {(pre.length > 0 || post.length > 0 || row.factors.length > 0) && (
             <div className="grid gap-3 md:grid-cols-3">
               {pre.length > 0 && <Card title="Pre-trade checklist"><ul className="space-y-1 text-[12px]">{pre.map((c) => <li key={c.id} className={c.checked ? "" : "text-muted"}>{c.checked ? "☑" : "☐"} {c.item}</li>)}</ul></Card>}
@@ -142,6 +147,8 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
             ) : <p className="text-[12px] text-muted">{sim.traits.length < 2 ? "Tag strategy, setup, session or quality to compare with history." : "No earlier trades are similar enough yet."}</p>}
           </Card>
 
+          <AiReviewCard userId={user.id} tradeId={id} tz={tz} />
+
           <Card title="Mistakes">
             {row.mistakes.length ? (
               <ul className="space-y-2 text-[12px]">
@@ -158,9 +165,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
 
           <Card title="TradingView alerts"><TradeAlerts tradeId={id} linked={linked} nearby={nearby} /></Card>
 
-          <Card title="AI analysis">
-            {config.anthropicKey() ? <Note>AI screenshot analysis arrives in the next phase.</Note> : <Note tone="neutral">Not configured. Add <code>ANTHROPIC_API_KEY</code> on the server to enable screenshot analysis and AI trade reviews.</Note>}
-          </Card>
+          <ScreenshotAnalysisCard userId={user.id} tradeId={id} tz={tz} />
         </div>
       </div>
     </>

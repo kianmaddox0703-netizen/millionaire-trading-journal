@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { afterTradesSaved } from "@/server/hooks";
 import { revalidatePath } from "next/cache";
 import { getUser } from "@/server/auth";
 import { NotFoundError } from "@/server/trades";
@@ -51,9 +52,10 @@ export async function POST(req: Request) {
     const o = { accountId: String(fd.get("accountId") ?? ""), mapping, zone, dayFirst: fd.get("dayFirst") === "1", costsPositive: fd.get("costsPositive") === "1" };
 
     if (fd.get("action") === "commit") {
-      const sum = commitImport(user.id, parsed, o, readDecisions(fd.get("decisions")));
+      const { tradeIds, ...sum } = commitImport(user.id, parsed, o, readDecisions(fd.get("decisions")));
       if (sum.created + sum.merged > 0) {
         matchAlertsForUser(user.id);
+        afterTradesSaved(user.id, tradeIds, "import");
         revalidatePath("/", "layout");
       }
       return NextResponse.json(sum);
