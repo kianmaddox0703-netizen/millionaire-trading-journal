@@ -6,6 +6,7 @@ import { NotFoundError } from "@/server/trades";
 import { ImportError, MAX_IMPORT_BYTES, buildPreview, commitImport, costsLookPositive, parseFile, type Decision } from "@/server/importer";
 import { matchAlertsForUser } from "@/server/tradingview";
 import { REQUIRED_FIELDS, TARGET_FIELDS, type ColumnMap } from "@/domain/importing";
+import { readFormData } from "@/server/http";
 
 const validZone = (z: string) => {
   if (z === "BROKER_NY7" || z === "PROFILE" || z === "UTC") return true;
@@ -38,7 +39,10 @@ const cellText = (c: unknown) => (c instanceof Date ? c.toISOString().replace("T
 export async function POST(req: Request) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const fd = await req.formData().catch(() => null);
+  // capped while reading (1 MB allowance for multipart overhead and the mapping fields)
+  const read = await readFormData(req, MAX_IMPORT_BYTES + 1024 * 1024);
+  if (!read.ok && read.tooLarge) return NextResponse.json({ error: "File is larger than 10 MB" }, { status: 413 });
+  const fd = read.ok ? read.value : null;
   const file = fd?.get("file");
   if (!fd || !(file instanceof File)) return NextResponse.json({ error: "No file" }, { status: 400 });
   if (file.size > MAX_IMPORT_BYTES) return NextResponse.json({ error: "File is larger than 10 MB" }, { status: 413 });

@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import { refreshContextForTrades } from "./marketdata/context";
-import { autoReviewTrades } from "./ai/review";
+import { claimAutoReviews, runClaimedReviews } from "./ai/review";
 
 export type SaveOrigin = "manual" | "import" | "mt5_bridge";
 
@@ -13,10 +13,12 @@ export type SaveOrigin = "manual" | "import" | "mt5_bridge";
 export function afterTradesSaved(userId: string, tradeIds: string[], origin: SaveOrigin) {
   const ids = [...new Set(tradeIds)];
   if (!ids.length) return;
+  // claimed now, so the trade page shows "being written" while the market context is still fetched first
+  const claimed = claimAutoReviews(userId, ids, origin);
   after(async () => {
     try { await refreshContextForTrades(userId, ids, origin); }
     catch (e) { console.error("market context after save failed:", e instanceof Error ? e.message : "unknown error"); }
-    try { await autoReviewTrades(userId, ids, origin); }
+    try { await runClaimedReviews(userId, claimed); }
     catch (e) { console.error("AI review after save failed:", e instanceof Error ? e.message : "unknown error"); }
   });
 }

@@ -9,6 +9,7 @@ import type { TradeFormData } from "@/server/formdata";
 import { saveTradeAction } from "@/app/(app)/trades/actions";
 import { Button, Field, Input, Select, Textarea, Badge, Note, cx } from "@/components/ui";
 import { ImageDrop, type StagedImage, uploadImages } from "./ImageDrop";
+import { ScreenshotReadings, useScreenshotReader } from "@/components/ai/ScreenshotQuickEntry";
 import { fmtNum, fmtR } from "@/lib/format";
 import type { TradeFormValues } from "@/lib/tradeFormValues";
 export type { TradeFormValues };
@@ -35,13 +36,17 @@ function Section({ title, children, defaultOpen = false, badge }: { title: strin
   );
 }
 
-export function TradeForm({ data, initial, tradeId }: { data: TradeFormData; initial: TradeFormValues; tradeId?: string }) {
+/** aiReady: pass aiConfigured() from the page; false hides the "Read screenshot" buttons (undefined shows them and the server explains). */
+export function TradeForm({ data, initial, tradeId, aiReady }: { data: TradeFormData; initial: TradeFormValues; tradeId?: string; aiReady?: boolean }) {
   const router = useRouter();
   const [v, setV] = useState<TradeFormValues>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [staged, setStaged] = useState<StagedImage[]>([]);
   const [pending, start] = useTransition();
+  const reader = useScreenshotReader();
+  // direction always has a value; quick entry may only set it while the trader hasn't chosen one
+  const [directionChosen, setDirectionChosen] = useState(Boolean(tradeId));
   const set = <K extends keyof TradeFormValues>(k: K, val: TradeFormValues[K]) => setV((p) => ({ ...p, [k]: val }));
   const num = (s: string) => (s.trim() === "" ? null : Number(s));
 
@@ -114,7 +119,7 @@ export function TradeForm({ data, initial, tradeId }: { data: TradeFormData; ini
           <Field label="Direction">
             <div className="grid h-8 grid-cols-2 overflow-hidden rounded border border-line-strong">
               {(["long", "short"] as const).map((d) => (
-                <button type="button" key={d} onClick={() => set("direction", d)} className={cx("text-[13px] font-medium", v.direction === d ? (d === "long" ? "bg-profit/20 text-profit" : "bg-loss/20 text-loss") : "bg-surface-2 text-muted")}>{d === "long" ? "Long" : "Short"}</button>
+                <button type="button" key={d} onClick={() => { set("direction", d); setDirectionChosen(true); }} className={cx("text-[13px] font-medium", v.direction === d ? (d === "long" ? "bg-profit/20 text-profit" : "bg-loss/20 text-loss") : "bg-surface-2 text-muted")}>{d === "long" ? "Long" : "Short"}</button>
               ))}
             </div>
           </Field>
@@ -167,7 +172,13 @@ export function TradeForm({ data, initial, tradeId }: { data: TradeFormData; ini
       </section>
 
       <Section title="Screenshots" defaultOpen badge={staged.length ? <Badge tone="info">{staged.length}</Badge> : null}>
-        <ImageDrop staged={staged} setStaged={setStaged} />
+        <ImageDrop staged={staged} setStaged={setStaged} onRead={aiReady === false ? undefined : reader.read} readingId={reader.busyId} />
+        {reader.state && (
+          <ScreenshotReadings
+            state={reader.state} form={v} directionChosen={directionChosen} onClose={reader.clear}
+            onApply={(patch) => { setV((p) => ({ ...p, ...patch })); if (patch.direction) setDirectionChosen(true); }}
+          />
+        )}
       </Section>
 
       <Section title="Context">
@@ -190,7 +201,7 @@ export function TradeForm({ data, initial, tradeId }: { data: TradeFormData; ini
       </Section>
 
       <Section title="Pre-trade checklist" badge={<span className="num ml-1 text-faint">{preItems.length - preUnchecked.length}/{preItems.length}</span>}>
-        <ul className="grid gap-1.5 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
           {preItems.map((item) => (
             <li key={item}><label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={checklistValue("pre", item)?.checked === true} onChange={(e) => setChecklist("pre", item, { checked: e.target.checked })} className="accent-[var(--color-info)]" />{item}</label></li>
           ))}
@@ -199,7 +210,7 @@ export function TradeForm({ data, initial, tradeId }: { data: TradeFormData; ini
       </Section>
 
       <Section title="Setup score">
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {data.factors.map((f) => (
             <div key={f.key} className="flex items-center justify-between gap-2">
               <span className="text-[13px]">{f.label} <span className="num text-[11px] text-faint">{f.weight}%</span></span>
@@ -235,7 +246,7 @@ export function TradeForm({ data, initial, tradeId }: { data: TradeFormData; ini
       </Section>
 
       <Section title="Journal">
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {NOTE_FIELDS.map(([k, label]) => (
             <Field key={k} label={label}><Textarea rows={3} value={v.notes[k] ?? ""} onChange={(e) => set("notes", { ...v.notes, [k]: e.target.value })} /></Field>
           ))}
@@ -244,7 +255,7 @@ export function TradeForm({ data, initial, tradeId }: { data: TradeFormData; ini
 
       {v.status === "closed" && (
         <Section title="After-trade review">
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {data.post.map((q) => q.startsWith("What") ? (
               <Field key={q} label={q} className="md:col-span-2"><Textarea rows={2} value={checklistValue("post", q)?.answer ?? ""} onChange={(e) => setChecklist("post", q, { answer: e.target.value })} /></Field>
             ) : (

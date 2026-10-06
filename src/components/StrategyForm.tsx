@@ -14,7 +14,7 @@ export function StrategyForm({ v }: { v: StrategyValues }) {
     <form action={action} className="space-y-3">
       {v.id && <input type="hidden" name="id" value={v.id} />}
       <Card>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Field label="Name"><Input name="name" defaultValue={v.name} required /></Field>
           <label className="flex items-end gap-2 pb-2 text-[13px]"><input type="checkbox" name="isActive" defaultChecked={v.isActive} /> Active (shown in trade entry)</label>
           <Field label="Description" className="md:col-span-2"><Textarea name="description" defaultValue={v.description} rows={3} /></Field>
@@ -24,7 +24,7 @@ export function StrategyForm({ v }: { v: StrategyValues }) {
         </div>
       </Card>
       <Card title="Rules (one per line; add “(optional)” at the end of a line to mark it optional)">
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Field label="Rules"><Textarea name="rule" defaultValue={v.rule} rows={5} /></Field>
           <Field label="Required confirmations"><Textarea name="confirmation" defaultValue={v.confirmation} rows={5} /></Field>
           <Field label="Invalidations"><Textarea name="invalidation" defaultValue={v.invalidation} rows={5} /></Field>

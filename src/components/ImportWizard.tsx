@@ -104,7 +104,7 @@ export function ImportWizard({ accounts, defaultAccount, tz }: { accounts: { id:
       )}
 
       <Card title="1 · File">
-        <div className="grid gap-3 md:grid-cols-[1fr_1fr]">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div
             role="button" tabIndex={0} aria-label="Choose a file to import"
             onClick={() => input.current?.click()} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && input.current?.click()}
@@ -139,7 +139,7 @@ export function ImportWizard({ accounts, defaultAccount, tz }: { accounts: { id:
         <Card title="2 · Columns" action={<Badge tone="info">{preview.format === "mt5_report" ? "MT5 report" : preview.kind.toUpperCase()}</Badge>}>
           {preview.notices.length > 0 && <div className="mb-3 space-y-1">{preview.notices.map((n) => <Note key={n} tone="neutral">{n}</Note>)}</div>}
           {preview.costsHint === true && !costsPositive && <div className="mb-3"><Note tone="warn">Your file's net P&L only adds up if commission is a cost written as a positive number. Tick “Commission and fees are listed as positive numbers”.</Note></div>}
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
             {TARGET_FIELDS.map((f) => {
               const required = REQUIRED_FIELDS.includes(f);
               return (

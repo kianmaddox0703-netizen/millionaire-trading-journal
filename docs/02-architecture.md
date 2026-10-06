@@ -94,8 +94,9 @@ trade_psychology     (trade_id, confidence 1-10, discipline 1-10, fomo, revenge,
 mistake_types        (user_id?, key, label, description)            system + user-defined
 trade_mistakes       (trade_id, user_id, mistake_type_id, source[user|rule|ai], cost_r?, note)
 checklist_responses  (trade_id, phase[pre|post], item, checked, answer)
-market_context       (trade_id, provider, trend, htf_bias, session, volatility, atr, near_key_level,
-                      computed_at, raw)                              raw = provider response metadata only
+market_context       (trade_id, provider, instrument, status[ok|error|unsupported|pending], error, trend, htf_bias,
+                      session, volatility, atr, near_key_level, computed_at, details)   details = definitions version,
+                      numbers, levels, candle range and the inputs used (no raw candles, no credentials)
 weekly_reviews       (user_id, account_id?, week_start, answers (per-question columns), focus_next_week, ai_summary)
 monthly_reviews      (user_id, account_id?, month, answers, ai_summary)
 performance_snapshots(user_id, account_id, as_of, balance, equity, net_pnl, trades)
@@ -106,8 +107,10 @@ tradingview_alerts   (user_id, received_at, symbol, timeframe, price, side, setu
 trade_links          (trade_id, kind[tv_alert|mt5_position], ref_id, score, status[suggested|confirmed|rejected])
 kb_concepts          (slug, name, category, definition, confidence, status, related, exceptions)
 kb_sources           (concept_id, url, title, kind[primary|secondary|third_party], locator, quote_summary)
-ai_analysis          (user_id, trade_id?, image_id?, kind[screenshot|trade_review|weekly|coach], model,
-                      observed, inferred, unknown, output, created_at)
+ai_analysis          (user_id, trade_id?, image_id?, period_key?, kind[screenshot|trade_review|weekly|monthly|coach],
+                      status[ok|error], error, model, output, input_tokens, output_tokens, created_at)
+coach_conversations  (user_id, title, created_at, updated_at)
+coach_messages       (conversation_id, user_id, role[user|assistant], content, tools, model, tokens, created_at)
 ```
 
 ## API surface (route handlers + server actions)
@@ -118,14 +121,15 @@ ai_analysis          (user_id, trade_id?, image_id?, kind[screenshot|trade_revie
 - Ingest: `/api/ingest/mt5` (Bearer API key), `/api/webhooks/tradingview/[token]`, bridge download `/api/bridge/mt5`. Details in `03-integrations.md`.
 - Analytics: computed server-side in pages from `domain/*` with a shared `TradeFilter`
 - Export: `/api/export/{trades,journal,reviews}.{csv,json}`
-- AI: `/api/ai/{screenshot,trade-review,coach}` (disabled without key)
+- AI: `/api/ai/screenshot/analyze` (stored image), `/api/ai/screenshot/extract` (staged image, nothing stored), `/api/ai/coach` (streams NDJSON); trade reviews and period summaries are server actions. All return "not configured" without `ANTHROPIC_API_KEY`. Details in `04-ai-and-market-data.md`.
+- Market data: server actions on `/market` and the trade page (fetch one trade, fetch missing); context is also refreshed after saves, imports and MT5 syncs.
 
 ## Frontend structure
 
 ```text
 src/app/(auth)/login, register
 src/app/(app)/layout.tsx         sidebar + top bar (account switcher, search, + Add Trade)
-  dashboard, trades, trades/[id], trades/new, strategies, strategies/[id], market, calendar,
+  dashboard, trades, trades/[id], trades/new, strategies, strategies/[id], market, coach, calendar,
   reviews, reviews/week/[date], mistakes, psychology, performance, settings
 src/components/ui/*              Card, Stat, Badge, Table, Button, Input, Select, Tabs, Empty
 src/components/charts/*          EquityCurve, BarPnl, Distribution
@@ -148,6 +152,6 @@ src/server/*                     db, auth, queries, storage, services
 | 1 Research | this + 01-research.md | done |
 | 2 Architecture | this doc | done |
 | 3 MVP | auth, accounts, dashboard, trade log, manual/quick entry, screenshots, analytics + filters, strategies, weekly review, calendar, mistakes/psychology basics, seed data, tests | done |
-| 4 Integrations | CSV/Excel/MT5 report import, duplicates, MT5 bridge, TradingView webhook, matching (see 03-integrations.md) | done; market data waits on a provider key |
-| 5 AI | screenshot analysis, trade review, coach, KB-grounded checks | needs ANTHROPIC_API_KEY |
+| 4 Integrations | CSV/Excel/MT5 report import, duplicates, MT5 bridge, TradingView webhook, matching (see 03-integrations.md) | done |
+| 5 AI + market data | screenshot analysis and quick entry, AI trade review, weekly/monthly summaries, coach, OANDA / Twelve Data market context (see 04-ai-and-market-data.md) | built and tested; live output needs `ANTHROPIC_API_KEY` and a provider key |
 | 6 Polish | PDF report (print-to-PDF), axe-core WCAG 2.1 AA pass, loading/error/not-found states | done |

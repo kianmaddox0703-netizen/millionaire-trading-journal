@@ -3,10 +3,11 @@ import { asc, eq } from "drizzle-orm";
 import { requireUser } from "@/server/auth";
 import { db, schema } from "@/server/db";
 import { getRiskRules } from "@/server/trades";
-import { config } from "@/server/config";
 import { ActionForm } from "@/components/ActionForm";
 import { Card, PageHeader, Field, Input, Select, Badge, Note, LinkButton } from "@/components/ui";
-import { saveAccount, saveFactors, saveProfile, saveRiskRules, changePassword } from "./actions";
+import { saveAccount, saveAiPrefs, saveFactors, saveProfile, saveRiskRules, changePassword } from "./actions";
+import { aiConfigured, aiModel } from "@/server/ai/client";
+import { providerStatus } from "@/server/marketdata/provider";
 
 export const metadata = { title: "Settings" };
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -19,11 +20,14 @@ export default async function Settings() {
   const restricted = (rules.restrictedDays ?? "").split(",").filter(Boolean);
   const totalW = factors.reduce((a, f) => a + f.weight, 0);
   const n = (v: number | null | undefined) => (v === null || v === undefined ? "" : String(v));
+  const aiAutoReview = db.select({ v: schema.users.aiAutoReview }).from(schema.users).where(eq(schema.users.id, user.id)).get()?.v ?? true;
+  const ai = aiConfigured();
+  const md = providerStatus();
 
   return (
     <>
       <PageHeader title="Settings" />
-      <div className="grid gap-3 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         <Card title="Risk rules">
           <ActionForm action={saveRiskRules}>
             <p className="mb-3 text-[12px] text-muted">Your own limits. Trades that break them are flagged as mistakes automatically (nothing is ever blocked or placed for you). Leave a field empty to disable that rule.</p>
@@ -48,12 +52,12 @@ export default async function Settings() {
             <p className="mb-3 text-[12px] text-muted">These weights are your hypothesis, not trading truth. Performance → “Setup-score factors” shows which factors actually line up with your results, so you can adjust. Weights are relative (total now {totalW}).</p>
             <div className="space-y-2">
               {factors.map((f) => (
-                <div key={f.id} className="grid grid-cols-[1fr_90px] gap-2">
+                <div key={f.id} className="grid grid-cols-[minmax(0,1fr)_90px] gap-2">
                   <Input name={`l_${f.key}`} defaultValue={f.label} aria-label="Factor label" />
                   <Input name={`w_${f.key}`} defaultValue={f.weight} inputMode="decimal" aria-label={`${f.label} weight`} />
                 </div>
               ))}
-              <div className="grid grid-cols-[1fr_90px] gap-2 border-t border-line pt-2"><Input name="newLabel" placeholder="Add factor…" /><Input name="newWeight" placeholder="10" inputMode="decimal" /></div>
+              <div className="grid grid-cols-[minmax(0,1fr)_90px] gap-2 border-t border-line pt-2"><Input name="newLabel" placeholder="Add factor…" /><Input name="newWeight" placeholder="10" inputMode="decimal" /></div>
             </div>
           </ActionForm>
         </Card>
@@ -94,6 +98,18 @@ export default async function Settings() {
           </div>
         </Card>
 
+        <Card title="AI" action={<Badge tone={ai ? "info" : "neutral"}>{ai ? aiModel() : "Not configured"}</Badge>}>
+          {ai ? (
+            <ActionForm action={saveAiPrefs}>
+              <label className="flex items-start gap-2 text-[13px]">
+                <input type="checkbox" name="aiAutoReview" defaultChecked={aiAutoReview} className="mt-1" />
+                <span>Write an AI review automatically when a trade is closed<span className="block text-[12px] text-muted">Once per trade, when you save a closed trade or when MT5 sync delivers a trade closed in the last 72 hours (at most 5 per sync). File imports are skipped so a large import doesn&apos;t trigger dozens of paid requests; you can generate those reviews from the trade page. A failed attempt isn&apos;t retried automatically; use Generate review on the trade.</span></span>
+              </label>
+            </ActionForm>
+          ) : <Note tone="neutral">Not configured. Add <code>ANTHROPIC_API_KEY</code> on the server to enable screenshot analysis, AI trade reviews, AI weekly and monthly summaries and the coach. Everything else works without it.</Note>}
+          <p className="mt-3 text-[11px] text-faint">AI features send the trade data, notes and screenshots they need to the Anthropic API to answer. The key stays on the server. The AI is decision support: it never predicts that a trade will win and never places trades.</p>
+        </Card>
+
         <Card title="Export">
           <div className="flex flex-wrap gap-2">
             <LinkButton prefetch={false} href="/api/export/trades?format=csv">Trades CSV</LinkButton>
@@ -110,8 +126,8 @@ export default async function Settings() {
             <li className="flex items-center justify-between gap-2"><Link className="hover:underline" href="/trades/import">CSV, Excel and MT5 report import with duplicate detection</Link><Badge tone="profit">Ready</Badge></li>
             <li className="flex items-center justify-between gap-2"><Link className="hover:underline" href="/settings/integrations">MT5 live sync (read-only bridge on your Windows PC)</Link><Badge tone="profit">Ready</Badge></li>
             <li className="flex items-center justify-between gap-2"><Link className="hover:underline" href="/settings/integrations">TradingView webhook alerts and automatic matching</Link><Badge tone="profit">Ready</Badge></li>
-            <li className="flex items-center justify-between gap-2"><span>Market data provider</span><Badge tone={config.marketDataProvider() === "none" ? "neutral" : "info"}>{config.marketDataProvider() === "none" ? "Not configured" : config.marketDataProvider()}</Badge></li>
-            <li className="flex items-center justify-between gap-2"><span>AI (screenshot analysis, coach)</span><Badge tone={config.anthropicKey() ? "info" : "neutral"}>{config.anthropicKey() ? "Key present" : "Not configured"}</Badge></li>
+            <li className="flex items-center justify-between gap-2"><Link className="hover:underline" href="/market">Market data (automatic trade context)</Link><Badge tone={md.ready ? "info" : md.problem ? "warn" : "neutral"}>{md.ready ? md.label : md.problem ? "Key missing" : "Not configured"}</Badge></li>
+            <li className="flex items-center justify-between gap-2"><span>AI (screenshot analysis, reviews, coach)</span><Badge tone={ai ? "info" : "neutral"}>{ai ? "Key present" : "Not configured"}</Badge></li>
           </ul>
           <Note tone="neutral">Integrations are not simulated. MT5 and TradingView need the setup steps on the Integrations page before they receive anything.</Note>
         </Card>

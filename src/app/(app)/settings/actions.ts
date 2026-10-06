@@ -21,6 +21,13 @@ export async function saveProfile(_: R, fd: FormData): Promise<R> {
   return { ok: true };
 }
 
+export async function saveAiPrefs(_: R, fd: FormData): Promise<R> {
+  const user = await requireUser();
+  db.update(schema.users).set({ aiAutoReview: fd.get("aiAutoReview") === "on", updatedAt: new Date() }).where(eq(schema.users.id, user.id)).run();
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
 export async function changePassword(_: R, fd: FormData): Promise<R> {
   const user = await requireUser();
   const cur = String(fd.get("current") ?? ""), next = String(fd.get("next") ?? "");

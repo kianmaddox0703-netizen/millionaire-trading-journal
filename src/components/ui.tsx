@@ -7,7 +7,7 @@ export const cx = clsx;
 
 export function Card({ className, children, title, action, pad = true }: { className?: string; children: ReactNode; title?: ReactNode; action?: ReactNode; pad?: boolean }) {
   return (
-    <section className={cx("rounded-md border border-line bg-surface", className)}>
+    <section className={cx("min-w-0 rounded-md border border-line bg-surface", className)}>
       {(title || action) && (
         <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted">{title}</h2>

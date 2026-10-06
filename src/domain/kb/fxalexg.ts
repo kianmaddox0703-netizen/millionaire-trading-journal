@@ -40,6 +40,9 @@ const POD = "https://podcasts.apple.com/us/podcast/set-and-forget/id1617481269";
 const FXINRS = "https://www.forex.in.rs/miami-trader-strategy-4/";
 const COINSPOT = "https://coinspot.io/en/reviews/swingtradinglab/";
 
+/** Every source URL the knowledge base cites. The coach may link to these and nothing else outside the app. */
+export const KB_SOURCE_URLS: readonly string[] = [TG, SITE, POD, FXINRS, COINSPOT];
+
 export const NOT_ESTABLISHED = "Not established from available source material.";
 
 export const KB_AREAS = [

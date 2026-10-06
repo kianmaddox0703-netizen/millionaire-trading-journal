@@ -18,7 +18,7 @@ export default async function Reviews() {
   return (
     <>
       <PageHeader title="Reviews" sub="Weekly reviews close the loop: trade → journal → review → adjust." actions={<LinkButton variant="primary" href={`/reviews/week/${thisWeek}`}>Review this week</LinkButton>} />
-      <div className="grid gap-3 xl:grid-cols-[1fr_360px]">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card title="Weekly" pad={false}>
           <Table>
             <thead><tr>{["Week of", "Trades", "P&L", "Avg R", "Win rate", "Mistakes", "Focus", "Status"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>

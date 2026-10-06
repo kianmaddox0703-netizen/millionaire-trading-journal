@@ -46,7 +46,7 @@ export function BridgeKeyForm({ accounts, appUrl }: { accounts: { id: string; na
   const [pending, start] = useTransition();
   return (
     <div className="space-y-2">
-      <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_1fr_auto] sm:items-end">
         <Field label="Sync into account"><Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></Field>
         <Field label="Label"><Input value={label} maxLength={60} onChange={(e) => setLabel(e.target.value)} /></Field>
         <Button size="sm" variant="primary" disabled={pending || !accountId} onClick={() => start(async () => { const r = await createBridgeKeyAction(accountId, label); setKey(r.key ?? ""); setErr(r.error ?? ""); })}>Create API key</Button>

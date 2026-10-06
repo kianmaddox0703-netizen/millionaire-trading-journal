@@ -4,6 +4,7 @@ import { getUser } from "@/server/auth";
 import { db, schema } from "@/server/db";
 import { newId } from "@/server/ids";
 import { MAX_IMAGE_BYTES, storeImage } from "@/server/storage";
+import { readFormData } from "@/server/http";
 
 const KINDS = ["before", "entry", "during", "exit", "tradingview", "mt5", "other"] as const;
 
@@ -14,7 +15,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const trade = db.select({ id: schema.trades.id }).from(schema.trades).where(and(eq(schema.trades.id, id), eq(schema.trades.userId, user.id))).get();
   if (!trade) return NextResponse.json({ error: "Trade not found" }, { status: 404 });
 
-  const fd = await req.formData().catch(() => null);
+  // capped while reading (1 MB allowance for multipart overhead)
+  const read = await readFormData(req, MAX_IMAGE_BYTES + 1024 * 1024);
+  if (!read.ok && read.tooLarge) return NextResponse.json({ error: "Image is larger than 15 MB" }, { status: 413 });
+  const fd = read.ok ? read.value : null;
   const file = fd?.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "No file" }, { status: 400 });
   if (file.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: "Image is larger than 15 MB" }, { status: 413 });

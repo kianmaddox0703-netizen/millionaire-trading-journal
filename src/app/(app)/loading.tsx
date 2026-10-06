@@ -8,7 +8,7 @@ export default function Loading() {
         {Array.from({ length: 8 }, (_, i) => <div key={i} className="h-16 rounded-md border border-line bg-surface" />)}
       </div>
       <div className="h-64 rounded-md border border-line bg-surface" />
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <div className="h-40 rounded-md border border-line bg-surface" />
         <div className="h-40 rounded-md border border-line bg-surface" />
       </div>

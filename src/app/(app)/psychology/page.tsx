@@ -35,7 +35,7 @@ export default async function Psychology() {
     <>
       <PageHeader title="Psychology" sub="How your state of mind lines up with outcomes." />
       <Note tone="neutral">Every row shows its sample size and a 95% range for the win rate. Rows with fewer than 10 trades are dimmed: treat them as anecdotes. Correlation is not causation.</Note>
-      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
         <Card title="Confidence (1–10)" pad={false}><Rows rows={conf.filter((g) => g.n > 0)} /></Card>
         <Card title="Discipline (1–10)" pad={false}><Rows rows={disc.filter((g) => g.n > 0)} /></Card>
         {phases.map((p) => (

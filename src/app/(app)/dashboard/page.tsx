@@ -47,7 +47,7 @@ export default async function Dashboard() {
     <>
       <PageHeader title="How am I trading?" sub={`${acctName} · ${s.count} closed trades`} />
 
-      <div className="grid gap-3 xl:grid-cols-[1fr_340px]">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-3">
           <Card title="Performance">
             <StatGrid cols={7}>
@@ -70,7 +70,7 @@ export default async function Dashboard() {
 
           <Card title="Equity curve"><EquityChart points={curve} start={start} /></Card>
 
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <Card title="Daily P&L (last 30 trading days)"><PnlBars data={dailyPnl(closed).slice(-30).map((d) => ({ ...d, label: d.label.slice(5) }))} /></Card>
             <Card title="Weekly P&L"><PnlBars data={weeklyPnl(closed).slice(-16)} /></Card>
             <Card title="R-multiple distribution" action={<span className="text-[11px] text-muted">{dist.wins}W · {dist.losses}L · {dist.breakeven}BE</span>}><Histogram data={rHistogram(closed)} /></Card>

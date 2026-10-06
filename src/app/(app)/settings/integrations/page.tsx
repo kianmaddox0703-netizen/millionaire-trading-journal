@@ -8,6 +8,8 @@ import { ALERT_TEMPLATE } from "@/domain/matching";
 import { Badge, Card, LinkButton, Note, PageHeader, Table, th, td, cx } from "@/components/ui";
 import { BridgeKeyForm, CopyBlock, RevokeKey, WebhookControls } from "@/components/Integrations";
 import { fmtDate } from "@/lib/format";
+import { aiConfigured, aiModel } from "@/server/ai/client";
+import { providerStatus } from "@/server/marketdata/provider";
 
 export const metadata = { title: "Integrations" };
 
@@ -20,7 +22,8 @@ export default async function IntegrationsPage() {
   const bridges = bridgeConnections(user.id);
   const appUrl = config.appUrl().replace(/\/$/, "");
   const publicUrl = /^https:\/\//.test(appUrl) && !/localhost|127\.0\.0\.1|0\.0\.0\.0/.test(appUrl);
-  const provider = config.marketDataProvider();
+  const md = providerStatus();
+  const ai = aiConfigured();
 
   return (
     <>
@@ -33,8 +36,8 @@ export default async function IntegrationsPage() {
 
         <Card title="AI and market data">
           <ul className="space-y-2 text-[12px]">
-            <li className="flex items-start justify-between gap-3"><span><b>AI coach and screenshot analysis.</b> <span className="text-muted">Needs <code>ANTHROPIC_API_KEY</code> on the server.</span></span><Badge tone={config.anthropicKey() ? "info" : "neutral"}>{config.anthropicKey() ? "Key present" : "Not configured"}</Badge></li>
-            <li className="flex items-start justify-between gap-3"><span><b>Market data.</b> <span className="text-muted">Needs an account with a data provider (OANDA or Twelve Data). Not connected, so the Market Analysis page shows only your own notes and trades.</span></span><Badge>{provider === "none" ? "Not configured" : provider}</Badge></li>
+            <li className="flex items-start justify-between gap-3"><span><b>AI.</b> <span className="text-muted">{ai ? <>Screenshot analysis, quick entry from screenshots, trade reviews, weekly and monthly summaries and the <Link className="underline" href="/coach">coach</Link> use {aiModel()}.</> : <>Screenshot analysis, AI trade reviews, AI weekly and monthly summaries and the coach need <code>ANTHROPIC_API_KEY</code> on the server. Nothing is simulated without it.</>}</span></span><Badge tone={ai ? "info" : "neutral"}>{ai ? "Key present" : "Not configured"}</Badge></li>
+            <li className="flex items-start justify-between gap-3"><span><b>Market data.</b> <span className="text-muted">{md.ready ? <>{md.label}. Trend, higher-timeframe bias, volatility and key levels are computed for each trade from the provider&apos;s hourly candles after saves, imports and MT5 sync (in limited batches), and from <Link className="underline" href="/market">Market Analysis</Link>.</> : md.problem ?? <>Not configured. Set <code>MARKET_DATA_PROVIDER</code> to <code>oanda</code> (with <code>OANDA_API_TOKEN</code> and <code>OANDA_ENV</code>) or <code>twelvedata</code> (with <code>TWELVEDATA_API_KEY</code>) on the server to compute trade context from real historical candles.</>}</span></span><Badge tone={md.ready ? "info" : md.problem ? "warn" : "neutral"}>{md.ready ? md.label : md.problem ? "Key missing" : "Not configured"}</Badge></li>
           </ul>
         </Card>
 

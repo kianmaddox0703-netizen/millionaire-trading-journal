@@ -60,7 +60,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
         actions={<><AskCoachLink tradeId={id} seq={row.seq} /><LinkButton href={`/trades/${id}/edit`}>Edit</LinkButton><DeleteTrade id={id} /></>}
       />
 
-      <div className="grid gap-3 xl:grid-cols-[1fr_380px]">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-3">
           <Card>
             <StatGrid cols={8}>
@@ -87,7 +87,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
 
           <Card title="Journal">
             {n && [n.why, n.observed, n.thesis, n.whatHappened, n.didWell, n.didPoorly, n.wouldChange, n.lesson].some(Boolean) ? (
-              <dl className="grid gap-x-6 gap-y-3 md:grid-cols-2">
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
                 {([["Why did I take this trade?", n.why], ["What did I see?", n.observed], ["Thesis", n.thesis], ["What happened?", n.whatHappened], ["What I did well", n.didWell], ["What I did poorly", n.didPoorly], ["What I would change", n.wouldChange], ["Lesson learned", n.lesson]] as const).filter(([, v]) => v).map(([k, v]) => (
                   <div key={k}><dt className="text-[11px] text-muted">{k}</dt><dd className="mt-0.5 whitespace-pre-wrap text-[13px]">{v}</dd></div>
                 ))}
@@ -95,7 +95,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
             ) : <div className="text-[12px] text-muted">No journal notes. <Link className="text-info" href={`/trades/${id}/edit`}>Add notes</Link></div>}
           </Card>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Card title="Context">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
                 {([["Market condition", row.marketCondition], ["Trend", row.trend], ["Higher-TF bias", row.htfBias], ["Entry confirmation", row.entryConfirmation], ["Confluences", row.confluences || null]] as const).map(([k, v]) => (
@@ -119,7 +119,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
           <MarketContextCard userId={user.id} tradeId={id} tz={tz} />
 
           {(pre.length > 0 || post.length > 0 || row.factors.length > 0) && (
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               {pre.length > 0 && <Card title="Pre-trade checklist"><ul className="space-y-1 text-[12px]">{pre.map((c) => <li key={c.id} className={c.checked ? "" : "text-muted"}>{c.checked ? "☑" : "☐"} {c.item}</li>)}</ul></Card>}
               {post.length > 0 && <Card title="After-trade review"><ul className="space-y-1.5 text-[12px]">{post.map((c) => <li key={c.id}><span className="text-muted">{c.item}</span> {c.checked !== null && <b>{c.checked ? "Yes" : "No"}</b>}{c.answer && <div className="whitespace-pre-wrap">{c.answer}</div>}</li>)}</ul></Card>}
               {row.factors.length > 0 && <Card title="Setup score factors"><ul className="space-y-1 text-[12px]">{row.factors.map((f) => <li key={f.id} className="flex justify-between"><span className="text-muted">{factors.find((x) => x.key === f.factorKey)?.label ?? f.factorKey}</span><span>{["No", "Partial", "Clear"][f.rating]}</span></li>)}</ul></Card>}

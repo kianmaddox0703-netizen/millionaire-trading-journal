@@ -40,7 +40,7 @@ export default async function Mistakes({ searchParams }: { searchParams: Promise
           </Card>
           {top && (
             <Card title={`Your #1 mistake ${range === "month" ? "this month" : range === "90d" ? "in 90 days" : "overall"}`}>
-              <div className="grid gap-4 md:grid-cols-[240px_1fr]">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
                 <div>
                   <div className="text-[20px] font-semibold">{top.label}</div>
                   <div className="num text-muted">{top.count} occurrences</div>
@@ -58,7 +58,7 @@ export default async function Mistakes({ searchParams }: { searchParams: Promise
               </div>
             </Card>
           )}
-          <div className="grid gap-3 lg:grid-cols-[1fr_400px]">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_400px]">
             <Card title="All mistakes" pad={false}>
               <Table>
                 <thead><tr>{["Mistake", "Count", "Win rate", "Avg R", "Realised R", "Est. opportunity", "Most common", "Evidence"].map((h) => <th key={h} className={th}>{h}</th>)}</tr></thead>

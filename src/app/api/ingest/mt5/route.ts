@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { afterTradesSaved } from "@/server/hooks";
 import { connectionForKey, ingestMt5, ingestSchema, MAX_INGEST_BYTES } from "@/server/mt5";
+import { readText } from "@/server/http";
 
 /** POST from bridge/mt5_bridge.py with `Authorization: Bearer mtj_…`. Read-only data in; never places trades. */
 export async function POST(req: Request) {
   const key = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   const conn = connectionForKey(key);
   if (!conn) return NextResponse.json({ error: "Invalid or revoked API key" }, { status: 401 });
-  if (Number(req.headers.get("content-length") ?? 0) > MAX_INGEST_BYTES) return NextResponse.json({ error: "Payload too large" }, { status: 413 });
-  const text = await req.text();
-  if (text.length > MAX_INGEST_BYTES) return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  const read = await readText(req, MAX_INGEST_BYTES);
+  if (!read.ok) return NextResponse.json({ error: "Payload too large" }, { status: 413 });
+  const text = read.value;
   let body: unknown;
   try { body = JSON.parse(text); } catch { return NextResponse.json({ error: "Body must be JSON" }, { status: 400 }); }
   const parsed = ingestSchema.safeParse(body);

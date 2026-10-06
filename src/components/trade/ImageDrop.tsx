@@ -25,8 +25,14 @@ export async function uploadImages(tradeId: string, imgs: StagedImage[]) {
   return { failed };
 }
 
-/** Drag-and-drop, paste-from-clipboard and multi-file picker. Images are staged locally until uploaded. */
-export function ImageDrop({ staged, setStaged, onFiles }: { staged: StagedImage[]; setStaged?: (f: (p: StagedImage[]) => StagedImage[]) => void; onFiles?: (files: File[]) => void }) {
+/**
+ * Drag-and-drop, paste-from-clipboard and multi-file picker. Images are staged locally until uploaded.
+ * With onRead, each staged image gets a "Read screenshot" button (AI quick entry); readingId marks the one being read.
+ */
+export function ImageDrop({ staged, setStaged, onFiles, onRead, readingId }: {
+  staged: StagedImage[]; setStaged?: (f: (p: StagedImage[]) => StagedImage[]) => void; onFiles?: (files: File[]) => void;
+  onRead?: (img: StagedImage) => void; readingId?: string | null;
+}) {
   const [over, setOver] = useState(false);
   const [err, setErr] = useState("");
   const input = useRef<HTMLInputElement>(null);
@@ -81,6 +87,13 @@ export function ImageDrop({ staged, setStaged, onFiles }: { staged: StagedImage[
                   {IMAGE_KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                 </select>
               </div>
+              {onRead && (
+                <div className="px-1 pb-1">
+                  <button type="button" onClick={() => onRead(img)} disabled={Boolean(readingId)} className="h-6 w-full rounded border border-line-strong bg-surface px-1 text-[11px] text-fg hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-50">
+                    {readingId === img.id ? "Reading…" : "Read screenshot"}<span className="sr-only"> {img.file.name}</span>
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

@@ -10,7 +10,7 @@ export const BASIS = ["data", "history", "chart", "inference", "opinion"] as con
 export type Basis = (typeof BASIS)[number];
 
 export const BASIS_LABEL: Record<Basis, string> = {
-  data: "Your records",
+  data: "Recorded data",
   history: "Historical evidence",
   chart: "Visible on chart",
   inference: "Inference",
@@ -18,16 +18,30 @@ export const BASIS_LABEL: Record<Basis, string> = {
 };
 
 export const BASIS_HELP: Record<Basis, string> = {
-  data: "Taken directly from fields, notes or checklists you recorded.",
+  data: "Taken directly from what you recorded (fields, notes, checklists) or from market data the app fetched for the trade.",
   history: "Computed from your own past trades. Describes how similar trades went, not how this one will.",
   chart: "Directly visible in the screenshot.",
   inference: "A likely interpretation that isn't directly shown.",
   opinion: "A judgement call. Weigh it against your own plan.",
 };
 
-// A negation or open question shortly before the phrase ("no guarantee", "isn't risk-free",
-// "whether it will win is unknown") makes it fine.
-const NEGATION = /\b(no|not|never|nothing|none|cannot|can't|cant|isn't|isnt|aren't|arent|doesn't|doesnt|don't|dont|won't|wont|without|neither|nor|whether|if)\b[^.!?\n]{0,40}$/i;
+// A negation or open question right before the phrase, at most two words away and in the same clause
+// ("no guarantee", "isn't risk-free", "nothing here is risk-free", "whether this trade will win is unknown"),
+// makes it fine. Further away it usually governs something else ("never been more confident this will win").
+const NEGATION = /\b(no|not|never|nothing|none|cannot|can't|cant|isn't|isnt|aren't|arent|doesn't|doesnt|don't|dont|won't|wont|without|neither|nor|whether)\b(?:\s+[^\s.!?]+){0,2}\s*$/i;
+// Phrases that contain a negation word but strengthen, reassure or disclaim rather than negate:
+// "no doubt this will win", "without question", "make no mistake", "no matter what", "don't worry",
+// "not financial advice, but ...".
+const NOT_A_NEGATION = /\b(no|without)\s+(a\s+|any\s+)?(doubt|question)s?\b|\bno\s+(mistake|matter)\b|\b(don't|dont|do not|no need to|not to)\s+worry\b|\bnot\s+(financial|investment|trading)\s+advice\b/gi;
+// A clause break ends a negation's reach: "This is not advice, but this trade will win."
+const CLAUSE_BREAK = /[,;:()\u2013\u2014]|\s-\s|\b(but|however|yet|still|though|although)\b/gi;
+
+function negated(prefix: string) {
+  const p = prefix.replace(/[\u2018\u2019]/g, "'").replace(NOT_A_NEGATION, " ");
+  let start = 0;
+  for (const m of p.matchAll(CLAUSE_BREAK)) start = m.index + m[0].length;
+  return NEGATION.test(p.slice(start));
+}
 
 interface Rule { re: RegExp; negatable: boolean }
 
@@ -55,10 +69,15 @@ function sentences(text: string) {
 export function certaintyViolations(text: string): string[] {
   const out: string[] = [];
   for (const s of sentences(text)) {
+    // a match that sits inside an already-negated one ("will win" in "can't know if this trade will win")
+    // is covered by that negation
+    const negatedSpans: [number, number][] = [];
     for (const r of RULES) {
       const m = r.re.exec(s);
       if (!m) continue;
-      if (r.negatable && NEGATION.test(s.slice(0, m.index))) continue;
+      const end = m.index + m[0].length;
+      if (negatedSpans.some(([a, b]) => m.index >= a && end <= b)) continue;
+      if (r.negatable && negated(s.slice(0, m.index))) { negatedSpans.push([m.index, end]); continue; }
       out.push(s);
       break;
     }
@@ -75,6 +94,33 @@ export function scrubCertainty(text: string): { text: string; changed: boolean }
   let out = text;
   for (const s of bad) out = out.split(s).join(REDACTION);
   return { text: out, changed: true };
+}
+
+/**
+ * The certainty guard for streamed text: each sentence is held back until it is complete, then released
+ * already scrubbed, so a forbidden sentence never reaches the screen, even briefly.
+ */
+export function certaintyGate() {
+  let pending = "";
+  const take = (n: number) => {
+    if (n <= 0) return "";
+    const chunk = pending.slice(0, n);
+    pending = pending.slice(n);
+    return scrubCertainty(chunk).text;
+  };
+  return {
+    /** Adds streamed text; returns the complete sentences that are ready to show. */
+    push(text: string) {
+      pending += text;
+      let end = 0;
+      for (const m of pending.matchAll(/[.!?]+["')\]]*\s+|\n+/g)) end = m.index + m[0].length;
+      return take(end);
+    },
+    /** Releases whatever is left at the end of the stream. */
+    flush() {
+      return take(pending.length);
+    },
+  };
 }
 
 /** Every string inside a JSON-like value, for checking structured outputs. */

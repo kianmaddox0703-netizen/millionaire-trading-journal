@@ -18,7 +18,7 @@ export default async function Strategies() {
     <>
       <PageHeader title="Strategies" sub="Does each strategy actually work for you?" actions={<><LinkButton href="/strategies/knowledge">FXAlexG knowledge base</LinkButton><LinkButton variant="primary" href="/strategies/new">New strategy</LinkButton></>} />
       {list.length === 0 && <Empty title="No strategies yet" />}
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {[...list.map((s) => ({ s, ts: closed.filter((t) => t.strategyId === s.id) })), ...(none.length ? [{ s: null, ts: none }] : [])].map(({ s, ts }) => {
           const sum = summarize(ts);
           const v = strategyVerdict(ts.map((t) => t.rMultiple).filter((x): x is number => x !== null));

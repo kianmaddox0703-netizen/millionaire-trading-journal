@@ -52,9 +52,29 @@ export function fallbackParams(model: string): { betas?: Anthropic.Beta.Anthropi
   return DEFAULT_FALLBACK_MODELS.has(model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" } : {};
 }
 
+/**
+ * A 403/407 without Anthropic's JSON error body came from a proxy or firewall that doesn't allow the host,
+ * not from the API. Without this check a blocked host would be reported as a key or model problem.
+ */
+function blockedOnTheWay(e: unknown): e is InstanceType<typeof Anthropic.APIError> {
+  if (!(e instanceof Anthropic.APIError) || (e.status !== 403 && e.status !== 407)) return false;
+  const body = e.error as { type?: unknown } | undefined;
+  return !body || typeof body !== "object" || body.type !== "error";
+}
+
+// Models that accept output_config.effort: Opus 4.5+, Sonnet 4.6+ and the Claude 5 family. Haiku 4.5 and
+// Sonnet 4.5 reject it, so a cheaper ANTHROPIC_MODEL still works (at that model's fixed default).
+const EFFORT_MODELS = /^claude-(opus-4-[5-9]|sonnet-4-[6-9]|(opus|sonnet|fable|mythos)-[5-9])/;
+
+/** The effort setting for this model: medium where supported, nothing otherwise. */
+export function effortParams(model: string): { effort?: "medium" } {
+  return EFFORT_MODELS.test(model) ? { effort: "medium" } : {};
+}
+
 /** A user-facing message for an API failure. Never includes the key or request bodies. */
 export function describeAiError(e: unknown): string {
   if (e instanceof AiNotConfiguredError) return e.message;
+  if (blockedOnTheWay(e)) return `The request was blocked before it reached the Anthropic API (HTTP ${e.status}, with no error message from Anthropic). This usually means the server's network doesn't allow api.anthropic.com.`;
   if (e instanceof Anthropic.AuthenticationError) return "The Anthropic API key was rejected. Check ANTHROPIC_API_KEY on the server.";
   if (e instanceof Anthropic.PermissionDeniedError) return "The Anthropic API key doesn't have access to this model. Check ANTHROPIC_MODEL.";
   if (e instanceof Anthropic.NotFoundError) return `The model "${aiModel()}" wasn't found. Check ANTHROPIC_MODEL.`;
@@ -66,6 +86,35 @@ export function describeAiError(e: unknown): string {
   return "The AI request failed.";
 }
 
+/** A stable, minifier-proof category for logs and tests. Never contains the key or any payload. */
+export function aiErrorKind(e: unknown): string {
+  if (e instanceof AiNotConfiguredError) return "not_configured";
+  if (e instanceof AiRateLimitError) return "app_rate_limit";
+  if (e instanceof AiOutputError) return "unusable_output";
+  if (blockedOnTheWay(e)) return "blocked_on_network";
+  if (e instanceof Anthropic.AuthenticationError) return "auth_rejected";
+  if (e instanceof Anthropic.PermissionDeniedError) return "permission_denied";
+  if (e instanceof Anthropic.NotFoundError) return "model_not_found";
+  if (e instanceof Anthropic.RateLimitError) return "api_rate_limit";
+  if (e instanceof Anthropic.BadRequestError) return "bad_request";
+  if (e instanceof Anthropic.APIConnectionTimeoutError) return "timeout";
+  if (e instanceof Anthropic.APIConnectionError) return "connection";
+  if (e instanceof Anthropic.APIError) return `api_${e.status ?? "error"}`;
+  return "unexpected";
+}
+
+/**
+ * One log line per AI failure: feature, stable kind, HTTP status and the API request id (both safe to log).
+ * Never logs keys, request bodies or API payloads. Unexpected errors (app bugs) add the first 200 characters
+ * of their message so they can be fixed.
+ */
+export function logAiFailure(where: string, e: unknown) {
+  const kind = aiErrorKind(e);
+  const api = e instanceof Anthropic.APIError ? `${e.status ? ` status=${e.status}` : ""}${e.requestID ? ` request_id=${e.requestID}` : ""}` : "";
+  if (kind === "unexpected") console.error(`[ai:${where}] failed: unexpected${e instanceof Error ? `: ${e.message.slice(0, 200)}` : ""}`);
+  else console.warn(`[ai:${where}] failed: ${kind}${api}`);
+}
+
 /** The model answered but the answer couldn't be used (refusal, truncated, invalid structure). */
 export class AiOutputError extends Error {}
 
@@ -75,8 +124,14 @@ export function assertUsableStop(message: { stop_reason: string | null }) {
   if (message.stop_reason === "max_tokens") throw new AiOutputError("The AI answer was cut off before it finished. Try again.");
 }
 
-export function usageOf(message: { usage?: { input_tokens?: number | null; output_tokens?: number | null } | null }) {
-  return { inputTokens: message.usage?.input_tokens ?? null, outputTokens: message.usage?.output_tokens ?? null };
+type Usage = { input_tokens?: number | null; output_tokens?: number | null; cache_creation_input_tokens?: number | null; cache_read_input_tokens?: number | null };
+
+/** Token counts to store. Input includes the cached system prefix (written or read), so it is the whole prompt. */
+export function usageOf(message: { usage?: Usage | null }) {
+  const u = message.usage;
+  if (!u) return { inputTokens: null, outputTokens: null };
+  const parts = [u.input_tokens, u.cache_creation_input_tokens, u.cache_read_input_tokens];
+  return { inputTokens: parts.every((x) => x == null) ? null : parts.reduce<number>((a, x) => a + (x ?? 0), 0), outputTokens: u.output_tokens ?? null };
 }
 
 // ───────────── per-user rate limit (cost guard) ─────────────

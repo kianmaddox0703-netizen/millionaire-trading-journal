@@ -81,7 +81,7 @@ export default async function ReportPage({ searchParams }: { searchParams: Promi
             <Card className="break-inside-avoid" title={`Equity · start ${fmtMoney(startBal, currency)} · max drawdown ${fmtMoney(dd.amount, currency)} (${fmtNum(dd.r, 1)}R)`}>
               <EquityChart points={curve} start={startBal} height={220} printWidth={680} />
             </Card>
-            <div className="grid gap-3 lg:grid-cols-3 print:grid-cols-1">
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 print:grid-cols-1">
               {tables.map(([label, fn]) => (
                 <Card key={label} title={`By ${label.toLowerCase()}`} pad={false}>
                   <Table>

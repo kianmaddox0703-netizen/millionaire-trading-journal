@@ -8,6 +8,7 @@ import { summarize } from "@/domain/metrics";
 import { PeriodView } from "@/components/PeriodView";
 import { MonthlyForm } from "@/components/ReviewForms";
 import { Card, PageHeader, LinkButton, Table, th, td, cx } from "@/components/ui";
+import { AiPeriodCard } from "@/components/ai/AiPeriodCard";
 import { fmtMoney, fmtR, fmtRate, fmtNum, tone } from "@/lib/format";
 
 export const metadata = { title: "Monthly review" };
@@ -16,7 +17,7 @@ const shift = (m: string, d: number) => { const [y, mo] = m.split("-").map(Numbe
 export default async function Month({ params }: { params: Promise<{ month: string }> }) {
   const { month } = await params;
   if (!/^\d{4}-\d{2}$/.test(month)) notFound();
-  const { user, closed, currency } = await pageContext();
+  const { user, closed, currency, accountId, tz } = await pageContext();
   const prev = shift(month, -1);
   const of = (m: string) => closed.filter((t) => t.day.startsWith(m));
   const r = periodReport(of(month), of(prev));
@@ -25,7 +26,7 @@ export default async function Month({ params }: { params: Promise<{ month: strin
   return (
     <>
       <PageHeader title={`Monthly review · ${month}`} actions={<><LinkButton href={`/reports?from=${month}-01&to=${addDays(`${shift(month, 1)}-01`, -1)}`}>PDF report</LinkButton><LinkButton href={`/reviews/month/${prev}`}>← Prev</LinkButton><LinkButton href={`/reviews/month/${shift(month, 1)}`}>Next →</LinkButton></>} />
-      <div className="grid gap-3 xl:grid-cols-[1fr_420px]">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="space-y-3">
           <PeriodView r={r} currency={currency} />
           <Card title="Compared with previous months" pad={false}>
@@ -40,6 +41,7 @@ export default async function Month({ params }: { params: Promise<{ month: strin
               ))}</tbody>
             </Table>
           </Card>
+          <AiPeriodCard userId={user.id} kind="monthly" period={month} accountId={accountId} tz={tz} />
         </div>
         <Card title="Your notes"><MonthlyForm month={month} values={{ notes: saved?.notes ?? "", biggestImprovement: saved?.biggestImprovement ?? "", focusNextMonth: saved?.focusNextMonth ?? "" }} /></Card>
       </div>

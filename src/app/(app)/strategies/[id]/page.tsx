@@ -65,7 +65,7 @@ export default async function StrategyPage({ params, searchParams }: { params: P
   return (
     <>
       <PageHeader title={s.name} sub={s.description} actions={<><LinkButton href={`/trades?strategyId=${s.id}`}>Trades</LinkButton><LinkButton href={`/strategies/${s.id}?edit=1`}>Edit</LinkButton></>} />
-      <div className="grid gap-3 xl:grid-cols-[1fr_380px]">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-3">
           <Card title="Does it work for me?" action={<Badge tone={v.tone}>{v.label}</Badge>}>
             <StatGrid cols={7}>
@@ -84,7 +84,7 @@ export default async function StrategyPage({ params, searchParams }: { params: P
             <p className="mt-2 text-[11px] text-faint">{v.detail}</p>
           </Card>
           {curve.length > 1 && <Card title="Strategy equity (cumulative)"><EquityChart points={curve} start={0} height={220} /></Card>}
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Card title="Best conditions"><Conditions items={edges.strongest.filter((c) => (c.stat.avgR ?? 0) > (sum.avgR ?? 0)).slice(0, 5)} /></Card>
             <Card title="Weak conditions"><Conditions items={edges.weakest.filter((c) => (c.stat.avgR ?? 0) < (sum.avgR ?? 0)).slice(0, 5)} /></Card>
           </div>

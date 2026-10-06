@@ -29,7 +29,7 @@ export default async function Knowledge() {
           if (!items.length) return null;
           return (
             <Card key={area} title={area}>
-              <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {items.map((c) => (
                   <article key={c.slug} id={c.slug} className={cx("scroll-mt-16 rounded border border-line bg-surface-2 p-3", c.confidence === "none" && "border-dashed")}>
                     <header className="mb-1 flex flex-wrap items-center gap-1.5">

@@ -7,6 +7,7 @@ import { periodReport } from "@/domain/period";
 import { PeriodView } from "@/components/PeriodView";
 import { WeeklyForm } from "@/components/ReviewForms";
 import { Card, PageHeader, LinkButton, Badge } from "@/components/ui";
+import { AiPeriodCard } from "@/components/ai/AiPeriodCard";
 
 export const metadata = { title: "Weekly review" };
 
@@ -14,7 +15,7 @@ export default async function Week({ params }: { params: Promise<{ date: string 
   const { date } = await params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
   const w = weekStartOf(date);
-  const { user, closed, currency } = await pageContext();
+  const { user, closed, currency, accountId, tz } = await pageContext();
   const end = addDays(w, 6), pw = addDays(w, -7);
   const r = periodReport(closed.filter((t) => t.day >= w && t.day <= end), closed.filter((t) => t.day >= pw && t.day < w));
   const saved = db.select().from(schema.weeklyReviews).where(and(eq(schema.weeklyReviews.userId, user.id), eq(schema.weeklyReviews.weekStart, w))).get();
@@ -25,8 +26,11 @@ export default async function Week({ params }: { params: Promise<{ date: string 
         {saved?.completedAt && <Badge tone="profit">Completed</Badge>}
         <LinkButton href={`/reviews/week/${pw}`}>← Prev</LinkButton><LinkButton href={`/reviews/week/${addDays(w, 7)}`}>Next →</LinkButton>
         <LinkButton href={`/trades?from=${w}&to=${end}`}>Trades</LinkButton></>} />
-      <div className="grid gap-3 xl:grid-cols-[1fr_1fr]">
-        <PeriodView r={r} currency={currency} />
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="space-y-3">
+          <PeriodView r={r} currency={currency} />
+          <AiPeriodCard userId={user.id} kind="weekly" period={w} accountId={accountId} tz={tz} />
+        </div>
         <Card title="Your review"><WeeklyForm weekStart={w} values={values} completed={!!saved?.completedAt} /></Card>
       </div>
     </>

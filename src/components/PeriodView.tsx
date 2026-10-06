@@ -26,7 +26,7 @@ export function PeriodView({ r, currency }: { r: PeriodReport; currency: string 
       <Card title="Summary from your data">
         {r.findings.length ? <ul className="list-disc space-y-1 pl-4 text-[12px]">{r.findings.map((f) => <li key={f}>{f}</li>)}</ul> : <div className="text-[12px] text-muted">No trades in this period.</div>}
       </Card>
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <Card title="Best / worst">{<div className="space-y-2">{pair("Strategy", r.best.strategy, r.worst.strategy)}{pair("Setup", r.best.setup, r.worst.setup)}{pair("Pair", r.best.symbol, r.worst.symbol)}{pair("Session", r.best.session, r.worst.session)}</div>}</Card>
         <Card title="Mistakes">{r.mistakes.length ? <ul className="space-y-1 text-[12px]">{r.mistakes.slice(0, 8).map((m) => <li key={m.key} className="flex justify-between"><span>{m.label}</span><span className="num text-muted">{m.count}× · {fmtR(m.costR, 1)}</span></li>)}</ul> : <div className="text-[12px] text-muted">None recorded.</div>}</Card>
         <Card title="Emotions">{r.emotions.length ? <ul className="space-y-1 text-[12px]">{r.emotions.slice(0, 8).map((e) => <li key={e.emotion} className="flex justify-between"><span>{e.emotion}</span><span className="num text-muted">{e.count}</span></li>)}</ul> : <div className="text-[12px] text-muted">None recorded.</div>}</Card>

@@ -69,4 +69,4 @@ Paste this into the alert's Message box:
 
 ## 4. Market data
 
-Not connected. A provider needs an account and key (OANDA practice token or Twelve Data). The client will be built and tested against the provider you choose once a key is available; until then the Market Analysis page uses only your own notes and trades.
+Built in phase 5 against OANDA (v20 REST, read-only candles) and Twelve Data, behind one `MarketDataProvider` interface. Set `MARKET_DATA_PROVIDER` and the provider's key on the server to turn it on; until then the trade page and Market Analysis say "Not configured" and nothing is estimated. Definitions, symbol mapping, rate limits, tests and what is still unverified against the live APIs: `04-ai-and-market-data.md`, section 5.

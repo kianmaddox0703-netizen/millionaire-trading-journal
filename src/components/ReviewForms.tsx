@@ -17,7 +17,7 @@ export function WeeklyForm({ weekStart, values, completed }: { weekStart: string
       {WEEKLY_QUESTIONS.map((g) => (
         <fieldset key={g.group}>
           <legend className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">{g.group}</legend>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {g.items.map(([k, q]) => <Field key={k} label={q} className={k === "focusNextWeek" ? "md:col-span-2" : undefined}><Textarea name={k} defaultValue={values[k] ?? ""} rows={2} /></Field>)}
           </div>
         </fieldset>

@@ -40,6 +40,27 @@ Production: `npm run build && npm start` behind HTTPS, with `COOKIE_SECURE=true`
 
 How each works, its limits and how it was verified: `docs/03-integrations.md`.
 
+## AI and market data (phase 5)
+
+Off until their keys are set on the server; without them each feature says "Not configured" and nothing is simulated.
+
+- **Screenshot analysis**: reads symbol, timeframe, direction, entry, stop and target from a chart screenshot, each marked Observed / Inferred / Unknown, plus structure notes, a rule-by-rule plan check and chart-vs-record differences. R:R is computed by the app from Observed levels only.
+- **Screenshot quick entry**: "Read screenshot" in the trade form fills only empty fields and only from Observed readings.
+- **AI trade review**: what went well, issues, plan check, historical comparison with sample size, suggested mistakes quoting your own words, one lesson. Runs once when a trade is closed (manual saves and recent MT5 trades; never for bulk imports), or on demand.
+- **AI weekly and monthly summaries** on the review pages.
+- **Coach** (`/coach`): ask about your own trading; it looks things up in your journal with read-only tools and tags every claim as your records, historical evidence, visible on chart, inference or opinion.
+- **Automatic market context** from OANDA or Twelve Data: trend (H1), higher-timeframe bias (H4), volatility and near-key-level at entry, computed from real candles with no lookahead, plus Market Analysis breakdowns with sample sizes.
+
+Every AI output goes through a certainty guard: a sentence that says a trade will win, or is guaranteed or risk-free, is replaced before it is stored. Details, definitions and what is still unverified live: `docs/04-ai-and-market-data.md`.
+
+| Variable | Turns on |
+|---|---|
+| `ANTHROPIC_API_KEY` (optional `ANTHROPIC_MODEL`, default `claude-opus-5-5`) | all AI features |
+| `MARKET_DATA_PROVIDER=oanda`, `OANDA_API_TOKEN`, `OANDA_ENV=practice\|live` | market context from OANDA |
+| `MARKET_DATA_PROVIDER=twelvedata`, `TWELVEDATA_API_KEY` | market context from Twelve Data (FX and metals) |
+
+The server must be able to reach `api.anthropic.com` and the provider's API host.
+
 ## Polish (phase 6)
 
 - **PDF report** (Trades → PDF report, or from any weekly/monthly review): performance, findings, best/worst, mistakes, emotions, equity curve, per-strategy/session/pair tables with evidence labels, and every trade. "Save as PDF" uses the browser's print-to-PDF with a light print palette.
@@ -59,25 +80,27 @@ All metric math is in `src/domain/metrics.ts`, written out explicitly and unit-t
 ## Tests
 
 ```bash
-npm test                      # unit + integration (metrics, mistakes, isolation, storage, search, CSV, import, matching, MT5 ingest)
+npm test                      # unit + integration (metrics, mistakes, isolation, storage, search, CSV, import, matching, MT5 ingest, AI, market data)
 npm run dev & npm run db:seed
 node scripts/smoke.mjs        # loads every page as the seed user
 node scripts/e2e.mjs          # register → add trade + screenshot → edit → review → export → delete → mobile
 node scripts/e2e-integrations.mjs  # CSV + MT5 report import, duplicates, TradingView webhook, MT5 bridge (needs python3)
 node scripts/a11y.mjs         # axe-core WCAG 2.1 A/AA audit of every page
+MODE=unconfigured node scripts/e2e-ai.mjs   # server without AI/market keys: every feature says "Not configured"
+MODE=rejected node scripts/e2e-ai.mjs       # server with a deliberately invalid key: every feature reports the rejection, no key leaks
 OUT=report.pdf node scripts/report-pdf.mjs   # renders the PDF report with Chromium's print engine
 ```
 
 ## Security
 
-bcrypt passwords; random session tokens stored only as SHA-256 hashes in httpOnly SameSite cookies; webhook URLs and MT5 bridge keys are random, shown once and stored only as hashes; every query scoped by `user_id`; uploads type-sniffed from bytes and served through an authorized route; secrets only from environment variables; security headers; CSV exports guarded against formula injection.
+bcrypt passwords; random session tokens stored only as SHA-256 hashes in httpOnly SameSite cookies; webhook URLs and MT5 bridge keys are random, shown once and stored only as hashes; every query scoped by `user_id`; uploads type-sniffed from bytes and served through an authorized route; secrets only from environment variables; AI and market-data keys are used only on the server and never logged (failures log a category and request id); every AI tool and market-data query is scoped to the signed-in user; security headers; CSV exports guarded against formula injection.
 
 ## Roadmap
 
 | Phase | Scope | Needs from you |
 |---|---|---|
-| 4 Integrations ✓ | Import, duplicates, MT5 bridge, TradingView webhook, matching are done. Market-data provider waits on a key. | TradingView: a public HTTPS URL, a plan with webhooks, 2FA. Market data: an OANDA practice token or Twelve Data key |
-| 5 AI | Screenshot analysis (observed / inferred / unknown), AI trade review, AI weekly/monthly summaries, AI coach grounded in your data + the knowledge base | `ANTHROPIC_API_KEY` |
+| 4 Integrations ✓ | Import, duplicates, MT5 bridge, TradingView webhook, matching | TradingView: a public HTTPS URL, a plan with webhooks, 2FA. A real MT5 report export to confirm the importer |
+| 5 AI + market data ✓ | Screenshot analysis and quick entry, AI trade review, weekly/monthly summaries, coach, OANDA / Twelve Data market context. Built and tested; live output not yet checked | `ANTHROPIC_API_KEY`; an OANDA practice token (or Twelve Data key); network access to those hosts |
 | 6 Polish ✓ | PDF report, accessibility audit and fixes, loading/error/not-found states | — |
 
-See `docs/01-research.md` and `docs/02-architecture.md`.
+See `docs/01-research.md`, `docs/02-architecture.md`, `docs/03-integrations.md` and `docs/04-ai-and-market-data.md`.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MAX_ALERT_BYTES, receiveAlert, userForWebhookToken } from "@/server/tradingview";
 import { TRADINGVIEW_IPS } from "@/domain/matching";
+import { readText } from "@/server/http";
 
 // Simple per-user limiter (keyed after the token is verified, so random URLs can't grow it). TradingView itself caps alerts at roughly 15 per 3 minutes.
 const hits = new Map<string, number[]>();
@@ -27,9 +28,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   const userId = userForWebhookToken(token);
   if (!userId) return new NextResponse("Not found", { status: 404 });
   if (limited(userId)) return new NextResponse("Too many alerts", { status: 429 });
-  if (Number(req.headers.get("content-length") ?? 0) > MAX_ALERT_BYTES) return new NextResponse("Too large", { status: 413 });
-  const body = await req.text();
-  if (body.length > MAX_ALERT_BYTES) return new NextResponse("Too large", { status: 413 });
-  receiveAlert(userId, body);
+  const read = await readText(req, MAX_ALERT_BYTES);
+  if (!read.ok) return new NextResponse("Too large", { status: 413 });
+  receiveAlert(userId, read.value);
   return new NextResponse("ok", { status: 200 });
 }

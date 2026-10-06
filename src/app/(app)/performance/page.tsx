@@ -84,7 +84,7 @@ export default async function Performance({ searchParams }: { searchParams: Prom
           </Card>
           <Card title={filtered ? "Equity (filtered trades, from zero)" : "Equity curve"}><EquityChart points={curve} start={filtered ? 0 : start} height={280} /></Card>
 
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
             <Card title="R-multiple distribution" className="lg:col-span-2"><Histogram data={rHistogram(rows)} height={220} /></Card>
             <Card title="Winners vs losers">
               <div className="grid grid-cols-2 gap-3 text-[12px]">
@@ -103,7 +103,7 @@ export default async function Performance({ searchParams }: { searchParams: Prom
           <Card title="Personal edge finder" className="scroll-mt-16" pad>
             <div id="edge" />
             <p className="mb-3 text-[12px] text-muted">Every single condition and pair of conditions with at least 5 trades, ranked by average R with small samples pulled toward your overall average ({fmtR(edges.baselineAvgR)}). Historical evidence only; it updates as you add trades.</p>
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {([["Your strongest conditions", edges.strongest], ["Your weakest conditions", edges.weakest]] as const).map(([title, list]) => (
                 <div key={title}>
                   <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted">{title}</div>
@@ -146,7 +146,7 @@ export default async function Performance({ searchParams }: { searchParams: Prom
             <div className="p-3"><Note tone="neutral">Trades where a factor was clearly present vs absent. A large, well-sampled difference suggests raising that factor's weight in Settings. These are your historical results, not predictions.</Note></div>
           </Card>
 
-          <div className="grid gap-3 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             {Object.entries(EDGE_DIMS).map(([dim, fn]) => (
               <Card key={dim} title={`By ${dim.toLowerCase()}`} pad={false}><StatTable label={dim} rows={groupStats(rows, fn, base)} /></Card>
             ))}
