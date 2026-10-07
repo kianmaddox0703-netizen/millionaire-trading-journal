@@ -4,7 +4,7 @@ import { db, schema } from "../db";
 import { newId } from "../ids";
 import { getUserTz } from "../trades";
 import {
-  AiOutputError, AiRateLimitError, aiClient, aiConfigured, aiModel, assertUsableStop, describeAiError, effortParams, fallbackParams, logAiFailure, takeAiQuota, usageOf,
+  AiOutputError, AiRateLimitError, aiClient, aiConfiguredFor, aiModel, assertUsableStop, describeAiError, effortParams, fallbackParams, logAiFailure, takeAiQuota, usageOf,
 } from "./client";
 import { systemBlocks } from "./prompts";
 import { COACH_TOOLS, CoachData, runCoachTool } from "./coachTools";
@@ -168,7 +168,7 @@ export async function* runCoach(userId: string, input: CoachInput, opts: { accou
       if (call > MAX_TOOL_ROUNDS + 2) throw new AiOutputError("The coach couldn't finish this answer. Try a narrower question.");
       if (call > 0 || !opts.quotaTaken) takeAiQuota(userId);
       const lastCall = toolRounds >= MAX_TOOL_ROUNDS;
-      const stream = aiClient().beta.messages.stream({
+      const stream = aiClient(userId).beta.messages.stream({
         model,
         max_tokens: 16000,
         system: systemBlocks(COACH_INSTRUCTIONS),
@@ -278,7 +278,7 @@ export async function handleCoachRequest(user: { id: string } | null, req: Reque
   if (!read.ok && read.tooLarge) return json({ ok: false, error: "The request is too large." }, 413);
   const v = validateCoachInput(user.id, read.ok ? read.value : null);
   if (!v.ok) return json({ ok: false, error: v.error }, v.status);
-  if (!aiConfigured()) return json({ ok: false, code: "not_configured", error: NOT_CONFIGURED }, 503);
+  if (!aiConfiguredFor(user.id)) return json({ ok: false, code: "not_configured", error: NOT_CONFIGURED }, 503);
   try {
     takeAiQuota(user.id);
   } catch (e) {

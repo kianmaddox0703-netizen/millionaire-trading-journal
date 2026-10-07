@@ -6,8 +6,10 @@ import { getRiskRules } from "@/server/trades";
 import { ActionForm } from "@/components/ActionForm";
 import { Card, PageHeader, Field, Input, Select, Badge, Note, LinkButton } from "@/components/ui";
 import { saveAccount, saveAiPrefs, saveFactors, saveProfile, saveRiskRules, changePassword } from "./actions";
-import { aiConfigured, aiModel } from "@/server/ai/client";
+import { aiConfiguredFor, aiModel } from "@/server/ai/client";
+import { aiKeyStatus } from "@/server/ai/key";
 import { providerStatus } from "@/server/marketdata/provider";
+import { AiKeyCard } from "./AiKeyCard";
 
 export const metadata = { title: "Settings" };
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -21,7 +23,8 @@ export default async function Settings() {
   const totalW = factors.reduce((a, f) => a + f.weight, 0);
   const n = (v: number | null | undefined) => (v === null || v === undefined ? "" : String(v));
   const aiAutoReview = db.select({ v: schema.users.aiAutoReview }).from(schema.users).where(eq(schema.users.id, user.id)).get()?.v ?? true;
-  const ai = aiConfigured();
+  const ai = aiConfiguredFor(user.id);
+  const aiKey = aiKeyStatus(user.id);
   const md = providerStatus();
 
   return (
@@ -98,16 +101,25 @@ export default async function Settings() {
           </div>
         </Card>
 
-        <Card title="AI" action={<Badge tone={ai ? "info" : "neutral"}>{ai ? aiModel() : "Not configured"}</Badge>}>
-          {ai ? (
-            <ActionForm action={saveAiPrefs}>
-              <label className="flex items-start gap-2 text-[13px]">
-                <input type="checkbox" name="aiAutoReview" defaultChecked={aiAutoReview} className="mt-1" />
-                <span>Write an AI review automatically when a trade is closed<span className="block text-[12px] text-muted">Once per trade, when you save a closed trade or when MT5 sync delivers a trade closed in the last 72 hours (at most 5 per sync). File imports are skipped so a large import doesn&apos;t trigger dozens of paid requests; you can generate those reviews from the trade page. A failed attempt isn&apos;t retried automatically; use Generate review on the trade.</span></span>
-              </label>
-            </ActionForm>
-          ) : <Note tone="neutral">Not configured. Add <code>ANTHROPIC_API_KEY</code> on the server to enable screenshot analysis, AI trade reviews, AI weekly and monthly summaries and the coach. Everything else works without it.</Note>}
-          <p className="mt-3 text-[11px] text-faint">AI features send the trade data, notes and screenshots they need to the Anthropic API to answer. The key stays on the server. The AI is decision support: it never predicts that a trade will win and never places trades.</p>
+        <Card title="AI & Anthropic" action={<Badge tone={ai ? "info" : "neutral"}>{ai ? aiModel() : "Not configured"}</Badge>}>
+          <div className="space-y-4">
+            <div>
+              <h3 className="mb-2 text-[13px] font-medium">Anthropic API key</h3>
+              <AiKeyCard source={aiKey.source} hint={aiKey.hint} />
+            </div>
+            {ai && (
+              <div>
+                <h3 className="mb-2 text-[13px] font-medium">AI reviews</h3>
+                <ActionForm action={saveAiPrefs}>
+                  <label className="flex items-start gap-2 text-[13px]">
+                    <input type="checkbox" name="aiAutoReview" defaultChecked={aiAutoReview} className="mt-1" />
+                    <span>Write an AI review automatically when a trade is closed<span className="block text-[12px] text-muted">Once per trade, when you save a closed trade or when MT5 sync delivers a trade closed in the last 72 hours (at most 5 per sync). File imports are skipped so a large import doesn&apos;t trigger dozens of paid requests; you can generate those reviews from the trade page. A failed attempt isn&apos;t retried automatically; use Generate review on the trade.</span></span>
+                  </label>
+                </ActionForm>
+              </div>
+            )}
+          </div>
+          <p className="mt-3 text-[11px] text-faint">AI features send the trade data, notes and screenshots they need to the Anthropic API to answer. The key stays on the server and is never logged or sent to the browser. The AI is decision support: it never predicts that a trade will win and never places trades.</p>
         </Card>
 
         <Card title="Export">

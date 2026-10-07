@@ -8,6 +8,8 @@ import { newId } from "@/server/ids";
 import { riskRulesInput } from "@/domain/validation";
 import { refreshRuleMistakes } from "@/server/trades";
 import { setupScore } from "@/domain/score";
+import { cleanKeyInput, validateKeyShape, saveAnthropicKey, removeAnthropicKey } from "@/server/ai/key";
+import { checkAnthropicKey } from "@/server/ai/keyCheck";
 
 type R = { ok?: boolean; error?: string };
 
@@ -97,5 +99,26 @@ export async function saveFactors(_: R, fd: FormData): Promise<R> {
     for (const [tradeId, ratings] of byTrade) tx.update(schema.trades).set({ setupScore: setupScore(fresh, ratings) }).where(eq(schema.trades.id, tradeId)).run();
   });
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function saveAiKey(_: R, fd: FormData): Promise<R> {
+  const user = await requireUser();
+  const raw = String(fd.get("anthropicKey") ?? "").trim();
+  const cleaned = cleanKeyInput(raw);
+  const err = validateKeyShape(cleaned);
+  if (err) return { error: err };
+  const check = await checkAnthropicKey(cleaned);
+  if (check.state === "rejected") return { error: check.message };
+  if (check.state === "unverified") return { error: `Couldn't verify the key: ${check.message}` };
+  saveAnthropicKey(user.id, cleaned);
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+export async function removeAiKey(): Promise<R> {
+  const user = await requireUser();
+  removeAnthropicKey(user.id);
+  revalidatePath("/settings");
   return { ok: true };
 }

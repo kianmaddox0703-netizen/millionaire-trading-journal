@@ -453,6 +453,18 @@ export const aiAnalysis = sqliteTable("ai_analysis", {
   createdAt: createdAt(),
 }, (t) => [index("ai_analysis_trade").on(t.tradeId, t.kind), index("ai_analysis_period").on(t.userId, t.kind, t.periodKey)]);
 
+// A secret the user saved inside the app (today only their Anthropic API key). The value is AES-256-GCM
+// ciphertext bound to the user and kind (src/server/secrets.ts); the plaintext is never stored. hint = last 4 characters.
+export const userSecrets = sqliteTable("user_secrets", {
+  id: id(),
+  userId: userId(),
+  kind: text("kind", { enum: ["anthropic"] }).notNull(),
+  ciphertext: text("ciphertext").notNull(),
+  hint: text("hint").notNull().default(""),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (t) => [uniqueIndex("user_secrets_user_kind").on(t.userId, t.kind)]);
+
 export const coachConversations = sqliteTable("coach_conversations", {
   id: id(),
   userId: userId(),

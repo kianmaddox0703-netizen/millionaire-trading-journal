@@ -3,7 +3,7 @@ import { db, schema } from "../db";
 import { newId } from "../ids";
 import { loadTrades, userAccounts, type EnrichedTrade } from "../analytics";
 import { NotFoundError, getRiskRules, getUserTz } from "../trades";
-import { AiNotConfiguredError, aiConfigured, aiModel, describeAiError, logAiFailure, takeAiQuota } from "./client";
+import { AiNotConfiguredError, aiConfiguredFor, aiModel, describeAiError, logAiFailure, takeAiQuota } from "./client";
 import { PROMPT_VERSION } from "./prompts";
 import { callStructured } from "./review";
 import { periodReport } from "@/domain/period";
@@ -124,11 +124,11 @@ export type PeriodResult = { ok: true; id: string; summary: StoredPeriodSummary 
 export async function generatePeriodSummary(userId: string, kind: PeriodKind, period: string, accountId?: string | null): Promise<PeriodResult> {
   const { packet, basedOn } = periodInputFor(userId, kind, period, accountId);
   if (!packet.tradeCount) throw new PeriodInputError(`No closed trades in this ${kind === "weekly" ? "week" : "month"}, so there is nothing to summarize.`);
-  if (!aiConfigured()) throw new AiNotConfiguredError();
+  if (!aiConfiguredFor(userId)) throw new AiNotConfiguredError();
   takeAiQuota(userId);
   const periodKey = periodKeyOf(period, accountId);
   try {
-    const { data, usage, model } = await callStructured(PeriodModelOutput, kind === "weekly" ? WEEKLY_INSTRUCTIONS : MONTHLY_INSTRUCTIONS, packet.text, normalizePeriodJson);
+    const { data, usage, model } = await callStructured(PeriodModelOutput, kind === "weekly" ? WEEKLY_INSTRUCTIONS : MONTHLY_INSTRUCTIONS, packet.text, userId, normalizePeriodJson);
     const summary = finalizePeriod(data, { kind, period, caveats: packet.caveats, basedOn, promptVersion: PROMPT_VERSION });
     const id = storeRow({ userId, kind, periodKey, model, status: "ok", output: JSON.stringify(summary), ...usage });
     return { ok: true, id, summary };

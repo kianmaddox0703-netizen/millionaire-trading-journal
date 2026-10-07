@@ -8,7 +8,7 @@ import { newId } from "../ids";
 import { MAX_IMAGE_BYTES, readStored, sniffImage } from "../storage";
 import { NotFoundError } from "../trades";
 import {
-  AiNotConfiguredError, AiOutputError, AiRateLimitError, aiClient, aiConfigured, aiModel, assertUsableStop, describeAiError, effortParams, fallbackParams, logAiFailure, takeAiQuota, usageOf,
+  AiNotConfiguredError, AiOutputError, AiRateLimitError, aiClient, aiConfiguredFor, aiModel, assertUsableStop, describeAiError, effortParams, fallbackParams, logAiFailure, takeAiQuota, usageOf,
 } from "./client";
 import { PROMPT_VERSION, systemBlocks } from "./prompts";
 import { scrubDeep } from "@/domain/ai/guard";
@@ -96,13 +96,13 @@ export async function prepareImageForVision(buf: Buffer, model: string): Promise
 
 // ───────────── the API call ─────────────
 
-async function readChart<S extends z.ZodType>(outSchema: S, instructions: string, content: Anthropic.Beta.BetaContentBlockParam[]) {
+async function readChart<S extends z.ZodType>(outSchema: S, instructions: string, content: Anthropic.Beta.BetaContentBlockParam[], userId: string) {
   const model = aiModel();
   const fb = fallbackParams(model);
   // Same JSON schema the SDK's parse() would send. create() is used instead of parse() because parse() throws
   // on a refusal or a cut-off answer before the stop reason can be checked and reported properly.
   const { type, schema: jsonSchema } = betaZodOutputFormat(outSchema);
-  const res = await aiClient().beta.messages.create({
+  const res = await aiClient(userId).beta.messages.create({
     model,
     max_tokens: 16000,
     system: systemBlocks(instructions),
@@ -170,7 +170,7 @@ export async function analyzeTradeImage(userId: string, imageId: string): Promis
   if (!img) throw new NotFoundError("Screenshot not found");
   const trade = db.select().from(schema.trades).where(and(eq(schema.trades.id, img.tradeId), eq(schema.trades.userId, userId))).get();
   if (!trade) throw new NotFoundError("Screenshot not found");
-  if (!aiConfigured()) throw new AiNotConfiguredError();
+  if (!aiConfiguredFor(userId)) throw new AiNotConfiguredError();
 
   const strategy = trade.strategyId
     ? db.query.strategies.findFirst({ where: and(eq(schema.strategies.id, trade.strategyId), eq(schema.strategies.userId, userId)), with: { rules: { orderBy: asc(schema.strategyRules.sort) } } }).sync()
@@ -187,7 +187,7 @@ export async function analyzeTradeImage(userId: string, imageId: string): Promis
     const { data, usage, model } = await readChart(AnalysisModelOutput, ANALYZE_INSTRUCTIONS, [
       vision.block,
       { type: "text", text: recordMessage(trade, img, strategy?.name ?? null, setup?.name ?? null, rules) },
-    ]);
+    ], userId);
     const built = buildAnalysis(data, {
       record: { symbol: trade.symbol, direction: trade.direction, entryPrice: trade.entryPrice, initialStop: trade.initialStop, takeProfit: trade.takeProfit, timeframe: trade.timeframe },
       strategy: strategy?.name ?? null, rules,
@@ -257,10 +257,10 @@ export function screenshotAnalysesForTrade(userId: string, tradeId: string): Ima
 export async function extractFromImage(userId: string, buf: Buffer): Promise<{ result: ScreenshotExtract; model: string }> {
   if (buf.length > MAX_IMAGE_BYTES) throw new ScreenshotInputError("Image is larger than 15 MB.", 413);
   if (!sniffImage(buf)) throw new ScreenshotInputError("Only JPEG, PNG and WebP images are supported.", 415);
-  if (!aiConfigured()) throw new AiNotConfiguredError();
+  if (!aiConfiguredFor(userId)) throw new AiNotConfiguredError();
   const vision = await prepareImageForVision(buf, aiModel());
   takeAiQuota(userId);
-  const { data, model } = await readChart(ExtractModelOutput, EXTRACT_INSTRUCTIONS, [vision.block, { type: "text", text: EXTRACT_REQUEST }]);
+  const { data, model } = await readChart(ExtractModelOutput, EXTRACT_INSTRUCTIONS, [vision.block, { type: "text", text: EXTRACT_REQUEST }], userId);
   const result: ScreenshotExtract = { chartSource: data.chartSource, fields: cleanFields(data.fields, data.chartSource), unknown: cleanList(data.unknown, 8) };
   return { result: scrubDeep(result).value, model };
 }

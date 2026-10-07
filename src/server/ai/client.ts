@@ -1,10 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config";
+import { anthropicKeyFor } from "./key";
 
 /**
  * The one place the app talks to the Anthropic API.
  *
- * - The key comes only from ANTHROPIC_API_KEY on the server and is never logged or sent to the browser.
+ * - The key is the user's own (saved encrypted in Settings) or, failing that, ANTHROPIC_API_KEY on the server. It is
+ *   never logged or sent to the browser.
  * - Without a key every AI feature reports "not configured"; nothing is simulated.
  * - Tests inject a labelled test double with setAiClientForTests(); production never does.
  */
@@ -13,25 +15,37 @@ import { config } from "../config";
 export type AiClient = Pick<Anthropic, "beta">;
 
 let override: AiClient | null = null;
-let cached: { key: string; client: Anthropic } | null = null;
+const cached = new Map<string, { key: string; client: Anthropic }>();
 
 export class AiNotConfiguredError extends Error {
-  constructor() { super("AI is not configured. Add ANTHROPIC_API_KEY on the server to enable it."); }
+  constructor() { super("AI is not set up yet. Add your Anthropic key in Settings → AI to enable it."); }
 }
 
+/**
+ * Whether AI is configured on the server (ANTHROPIC_API_KEY set). This is the legacy check used for
+ * UI features that don't know which user is asking. Server-side code should use aiConfiguredFor() to
+ * check per-user keys.
+ */
 export function aiConfigured() {
   return override !== null || config.anthropicKey() !== "";
 }
 
-export function aiClient(): AiClient {
+/** Whether AI is configured for a specific user: they have their own saved key, or the server has one set. */
+export function aiConfiguredFor(userId: string) {
+  return override !== null || anthropicKeyFor(userId) !== null;
+}
+
+/** The client for this user's key. One client per user is reused while their key stays the same. */
+export function aiClient(userId: string): AiClient {
   if (override) return override;
-  const key = config.anthropicKey();
+  const key = anthropicKeyFor(userId);
   if (!key) throw new AiNotConfiguredError();
-  if (!cached || cached.key !== key) {
-    // baseURL is explicit so a stray ANTHROPIC_BASE_URL in the host environment can't redirect the user's key.
-    cached = { key, client: new Anthropic({ apiKey: key, baseURL: "https://api.anthropic.com", maxRetries: 2, timeout: 180_000 }) };
-  }
-  return cached.client;
+  const hit = cached.get(userId);
+  if (hit?.key === key) return hit.client;
+  // baseURL is explicit so a stray ANTHROPIC_BASE_URL in the host environment can't redirect the user's key.
+  const client = new Anthropic({ apiKey: key, baseURL: "https://api.anthropic.com", maxRetries: 2, timeout: 180_000 });
+  cached.set(userId, { key, client });
+  return client;
 }
 
 /** Test seam. Pass null to restore the real client. */
@@ -62,6 +76,11 @@ function blockedOnTheWay(e: unknown): e is InstanceType<typeof Anthropic.APIErro
   return !body || typeof body !== "object" || body.type !== "error";
 }
 
+/** Anthropic reports an empty prepaid balance as a 400 whose message says "credit balance is too low". */
+function isCreditError(e: unknown): boolean {
+  return e instanceof Anthropic.BadRequestError && /credit balance/i.test(e.message);
+}
+
 // Models that accept output_config.effort: Opus 4.5+, Sonnet 4.6+ and the Claude 5 family. Haiku 4.5 and
 // Sonnet 4.5 reject it, so a cheaper ANTHROPIC_MODEL still works (at that model's fixed default).
 const EFFORT_MODELS = /^claude-(opus-4-[5-9]|sonnet-4-[6-9]|(opus|sonnet|fable|mythos)-[5-9])/;
@@ -75,10 +94,11 @@ export function effortParams(model: string): { effort?: "medium" } {
 export function describeAiError(e: unknown): string {
   if (e instanceof AiNotConfiguredError) return e.message;
   if (blockedOnTheWay(e)) return `The request was blocked before it reached the Anthropic API (HTTP ${e.status}, with no error message from Anthropic). This usually means the server's network doesn't allow api.anthropic.com.`;
-  if (e instanceof Anthropic.AuthenticationError) return "The Anthropic API key was rejected. Check ANTHROPIC_API_KEY on the server.";
+  if (e instanceof Anthropic.AuthenticationError) return "Anthropic rejected the API key. Check it in Settings → AI, or paste a new one.";
   if (e instanceof Anthropic.PermissionDeniedError) return "The Anthropic API key doesn't have access to this model. Check ANTHROPIC_MODEL.";
   if (e instanceof Anthropic.NotFoundError) return `The model "${aiModel()}" wasn't found. Check ANTHROPIC_MODEL.`;
   if (e instanceof Anthropic.RateLimitError) return "The Anthropic API rate limit was reached. Try again in a minute.";
+  if (isCreditError(e)) return "Your Anthropic account has no credit left. Add credits under Billing in the Anthropic console, then try again.";
   if (e instanceof Anthropic.BadRequestError) return `The AI request was rejected: ${e.message.slice(0, 200)}`;
   if (e instanceof Anthropic.APIConnectionError) return "Couldn't reach the Anthropic API. Check the server's network access.";
   if (e instanceof Anthropic.APIError) return `The Anthropic API returned an error (${e.status ?? "unknown"}). Try again shortly.`;
@@ -96,6 +116,7 @@ export function aiErrorKind(e: unknown): string {
   if (e instanceof Anthropic.PermissionDeniedError) return "permission_denied";
   if (e instanceof Anthropic.NotFoundError) return "model_not_found";
   if (e instanceof Anthropic.RateLimitError) return "api_rate_limit";
+  if (isCreditError(e)) return "no_credit";
   if (e instanceof Anthropic.BadRequestError) return "bad_request";
   if (e instanceof Anthropic.APIConnectionTimeoutError) return "timeout";
   if (e instanceof Anthropic.APIConnectionError) return "connection";

@@ -8,7 +8,7 @@ import { loadTrades } from "../analytics";
 import { NotFoundError, getRiskRules, getUserTz, refreshRuleMistakes } from "../trades";
 import { alertsForTrade } from "../tradingview";
 import {
-  AiNotConfiguredError, AiOutputError, AiRateLimitError, aiClient, aiConfigured, aiModel, assertUsableStop, describeAiError, effortParams, fallbackParams, logAiFailure, takeAiQuota, usageOf,
+  AiNotConfiguredError, AiOutputError, AiRateLimitError, aiClient, aiConfiguredFor, aiModel, assertUsableStop, describeAiError, effortParams, fallbackParams, logAiFailure, takeAiQuota, usageOf,
 } from "./client";
 import { contextFor, stateOf } from "../marketdata/context";
 import { PROMPT_VERSION, systemBlocks } from "./prompts";
@@ -55,11 +55,11 @@ export class ReviewInputError extends Error {}
  * generic error on a refusal or a cut-off answer before the stop reason can be checked; this
  * checks the stop reason first, then parses and validates the JSON with the same zod schema.
  */
-export async function callStructured<S extends z.ZodType>(outSchema: S, instructions: string, userText: string, normalize: (raw: unknown) => unknown = (x) => x) {
+export async function callStructured<S extends z.ZodType>(outSchema: S, instructions: string, userText: string, userId: string, normalize: (raw: unknown) => unknown = (x) => x) {
   const model = aiModel();
   const fb = fallbackParams(model);
   const { type, schema: jsonSchema } = betaZodOutputFormat(outSchema);
-  const res = await aiClient().beta.messages.create({
+  const res = await aiClient(userId).beta.messages.create({
     model,
     max_tokens: 16000,
     system: systemBlocks(instructions),
@@ -189,11 +189,11 @@ export type ReviewResult = { ok: true; id: string; review: StoredTradeReview } |
 export async function generateTradeReview(userId: string, tradeId: string): Promise<ReviewResult> {
   const input = reviewInputFor(userId, tradeId);
   if (input.trade.status !== "closed") throw new ReviewInputError("The AI review is written once the trade is closed.");
-  if (!aiConfigured()) throw new AiNotConfiguredError();
+  if (!aiConfiguredFor(userId)) throw new AiNotConfiguredError();
   const packet = buildReviewPacket(input);
   takeAiQuota(userId);
   try {
-    const { data, usage, model } = await callStructured(ReviewModelOutput, REVIEW_INSTRUCTIONS, packet.text, normalizeReviewJson);
+    const { data, usage, model } = await callStructured(ReviewModelOutput, REVIEW_INSTRUCTIONS, packet.text, userId, normalizeReviewJson);
     const review = finalizeReview(data, packet, PROMPT_VERSION);
     const id = storeRow({ userId, tradeId, model, status: "ok", output: JSON.stringify(review), ...usage });
     return { ok: true, id, review };
@@ -224,7 +224,7 @@ export const reviewBeingWritten = (tradeId: string) => inflight.has(tradeId);
  */
 export function claimAutoReviews(userId: string, tradeIds: string[], origin: SaveOrigin): string[] {
   try {
-    if (origin === "import" || !aiConfigured()) return [];
+    if (origin === "import" || !aiConfiguredFor(userId)) return [];
     const ids = [...new Set(tradeIds)].filter((x) => typeof x === "string" && x);
     if (!ids.length) return [];
     const user = db.select({ auto: schema.users.aiAutoReview }).from(schema.users).where(eq(schema.users.id, userId)).get();
